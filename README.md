@@ -61,3 +61,9 @@ Public domain (see `UNLICENSE`).
   - [S] Where a record names its spirit, the shape is that spirit's as the Goetia gives it (Sloane 3825): Marbas a great lion, Furfur a hart with a fiery tail.
   - [O] Voided work is a soul pushing a weight, an intruder's input a coiled serpent, history a standing stone, and the damned are sunk to the chest in ice.
   - These are effigies standing for a record. The spec's rule that the mirror shows record, never a spirit, is unchanged.
+
+## Dressed walls and floors (latest)
+
+- **Each circle dresses its stone its own way.** The same masonry carries a different surface in each circle, with a few kinds mixed along every wall so no stretch repeats: veined marble and the odd crack in Limbo's castle, runs of filth under the gluttons' rain, the marks the marsh leaves along the walls of Styx, baked and crazed patches by the burning sand, cracks and breaches made good in small brick in Malebolge, fracture lines in the ice.
+- **Floors follow the stone.** Lozenge tiles in the second circle, riveted plates on iron, rutted mud for the gluttons and the marsh, crazed ground on the sand, fractured ice at the bottom.
+- The idea of a family of surfaces per kind of place, mixed along a wall, comes from studying the Daggerfall mod "Daggerfall Dungeon Variety" (demifiend000). None of its images are used: every surface here is computed, in white line on black.
