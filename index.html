@@ -545,13 +545,15 @@ const infernus = (function () {
 
   /* ---- textures: white line on black, read as grey and dithered later ---- */
   const TEX = [];
-  function tex(w, h, draw) {
+  function tex(w, h, draw, once) {       // once: a sign or a door, drawn one time only and never repeated up a tall wall
     const k = 3, c = document.createElement("canvas"); c.width = w * k; c.height = h * k;
     const g = c.getContext("2d"); g.scale(k, k); g.fillStyle = "#000"; g.fillRect(0, 0, w, h); g.strokeStyle = g.fillStyle = "#fff"; g.lineWidth = 1.6; g.textAlign = "center"; g.font = "bold 13px Palatino, 'Book Antiqua', Georgia, serif";
     draw(g, w, h);
     const d = g.getImageData(0, 0, w * k, h * k).data, o = new Uint8Array(w * k * h * k);
     for (let i = 0; i < o.length; i++) o[i] = Math.min(255, d[i * 4] * 1.7);
-    TEX.push({ w: w * k, h: h * k, d: o, span: w / 128 }); return TEX.length - 1;
+    const lv = [{ w: w * k, h: h * k, d: o }];           // smaller copies that keep the brightest of each four, so thin lines stay whole far off
+    for (let i = 0; i < 3; i++) { const a = lv[i], W2 = a.w >> 1, H2 = a.h >> 1, d2 = new Uint8Array(W2 * H2); for (let y = 0; y < H2; y++) for (let x = 0; x < W2; x++) { const j = 2 * y * a.w + 2 * x; d2[y * W2 + x] = Math.max(a.d[j], a.d[j + 1], a.d[j + a.w], a.d[j + a.w + 1]); } lv.push({ w: W2, h: H2, d: d2 }); }
+    TEX.push({ w: w * k, h: h * k, d: o, span: w / 128, lv, once: !!once }); return TEX.length - 1;
   }
   function masonry(g, w, h, kind) {      // 0: courses in 6 : 8 : 9 : 12; 1: uneven ashlar; 2: rubble
     g.globalAlpha = .55;
@@ -594,7 +596,7 @@ const infernus = (function () {
     if (crown) { g.beginPath(); g.moveTo(50, 60); g.lineTo(50, 48); g.lineTo(57, 55); g.lineTo(64, 45); g.lineTo(71, 55); g.lineTo(78, 48); g.lineTo(78, 60); g.closePath(); g.stroke(); }
     g.font = "bold " + (name.length > 10 ? 12 : name.length > 8 ? 13 : 16) + "px Palatino, 'Book Antiqua', Georgia, serif"; g.fillText(name, 64, crown ? 78 : 70);
     if (sub) { g.font = "bold 9px Palatino, Georgia, serif"; g.fillText(sub, 64, 89); }
-  });
+  }, true);
   const KING = [plate("ORIENS", "EAST", 1), plate("AMAYMON", "SOUTH", 1), plate("PAIMON", "WEST", 1), plate("EGIN", "NORTH", 1)];
   const SENATOR = ["ORMELL", "TEYGRA", "DANALL", "SALERICA", "ASMOE", "PASCARI", "BOELL"].map((n) => plate(n, "SENATOR"));
   const DEVIL = ["LUCIPHER", "BELLZEBUB", "SATAN"].map((n) => plate(n, ""));
@@ -608,14 +610,14 @@ const infernus = (function () {
     g.fillStyle = "#000"; g.fillRect(48, 22, 160, 78); g.fillStyle = "#fff";
     g.font = "bold 12px Palatino, 'Book Antiqua', Georgia, serif"; g.fillText("LASCIATE OGNE SPERANZA", 128, 40); g.fillText("VOI CH'INTRATE", 128, 57);
     g.font = "bold 8.5px Palatino, Georgia, serif"; g.fillText("BELIALL · MALEUS · MALCRANUS", 128, 82); g.fillText("KEEPERS OF THE GATE", 128, 94);
-  });
-  const STARS = tex(128, 128, (g) => { for (let i = 0; i < 60; i++) { g.globalAlpha = .5 + .5 * Math.random(); g.fillRect(Math.random() * 128, Math.random() * 92, 1.5, 1.5); } g.globalAlpha = 1; g.font = "bold 9px Palatino, Georgia, serif"; g.fillText("E QUINDI USCIMMO", 64, 108); g.fillText("A RIVEDER LE STELLE", 64, 120); });
-  const SECRET = tex(128, 128, (g, w, h) => { masonry(g, w, h); g.globalAlpha = .8; g.beginPath(); g.moveTo(60, 128); for (const [x, y] of [[63, 104], [58, 86], [66, 70], [61, 52], [65, 40]]) g.lineTo(x, y); g.stroke(); });
+  }, true);
+  const STARS = tex(128, 128, (g) => { for (let i = 0; i < 60; i++) { g.globalAlpha = .5 + .5 * Math.random(); g.fillRect(Math.random() * 128, Math.random() * 92, 1.5, 1.5); } g.globalAlpha = 1; g.font = "bold 9px Palatino, Georgia, serif"; g.fillText("E QUINDI USCIMMO", 64, 108); g.fillText("A RIVEDER LE STELLE", 64, 120); }, true);
+  const SECRET = tex(128, 128, (g, w, h) => { masonry(g, w, h); g.globalAlpha = .8; g.beginPath(); g.moveTo(60, 128); for (const [x, y] of [[63, 104], [58, 86], [66, 70], [61, 52], [65, 40]]) g.lineTo(x, y); g.stroke(); }, true);
   // [O] after Superliminal: a way painted on a wall, that is only paint
   const PAINTED = tex(128, 128, (g, w, h) => { masonry(g, w, h); g.fillStyle = "#000"; g.beginPath(); g.moveTo(14, 128); g.lineTo(14, 56); g.arc(64, 56, 50, Math.PI, 0); g.lineTo(114, 128); g.fill(); g.stroke();
     for (const k of [.72, .5, .33, .2]) { g.globalAlpha = .35 + k * .6; g.strokeRect(64 - 50 * k, 84 - 60 * k, 100 * k, 104 * k); } g.globalAlpha = .7;
-    for (const [x, y] of [[14, 128], [114, 128], [14, 30], [114, 30]]) { g.beginPath(); g.moveTo(x, y); g.lineTo(64 + (x - 64) * .2, 84 + (y > 60 ? 9 : -12)); g.stroke(); } });
-  const ARCH = tex(128, 128, (g, w, h) => { masonry(g, w, h); g.fillStyle = "#000"; g.beginPath(); g.moveTo(14, 128); g.lineTo(14, 56); g.arc(64, 56, 50, Math.PI, 0); g.lineTo(114, 128); g.fill(); g.stroke(); });
+    for (const [x, y] of [[14, 128], [114, 128], [14, 30], [114, 30]]) { g.beginPath(); g.moveTo(x, y); g.lineTo(64 + (x - 64) * .2, 84 + (y > 60 ? 9 : -12)); g.stroke(); } }, true);
+  const ARCH = tex(128, 128, (g, w, h) => { masonry(g, w, h); g.fillStyle = "#000"; g.beginPath(); g.moveTo(14, 128); g.lineTo(14, 56); g.arc(64, 56, 50, Math.PI, 0); g.lineTo(114, 128); g.fill(); g.stroke(); }, true);
 
   /* ---- the shapes of the condemned: four frames each, black bodies in white line ---- */
   const SHAPE = {
@@ -828,7 +830,7 @@ const infernus = (function () {
   const P = { x: 8, y: 5, a: -Math.PI / 2, f: 0, vz: 0, s: 1, sT: 1, p: 0 };
   const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5], PL = .72;
   const SNAP = 2;
-  const FOG = 22, FOGK = .06, mist = (v, d) => { const e = Math.exp(-d * FOGK); return v * Math.min(1, 5 / (1 + .03 * d * d)) * e + FOG * (1 - e); };
+  const FOG = 12, FOGK = .03, mist = (v, d) => { const e = Math.exp(-d * FOGK); return v * Math.min(1, 6 / (1 + .012 * d * d)) * e + FOG * (1 - e); };
   let target = null, hollow = null, reading = false, on = false, last = 0, cur = 0, grounded = true;
   const keys = new Set();
   function size() { H = 400; W = Math.max(480, Math.min(900, Math.round(H * innerWidth / innerHeight / 2) * 2)); cv.width = W; cv.height = H; img = g.createImageData(W, H); buf = new Float32Array(W * H); done = new Uint8Array(W * H); for (let i = 3; i < img.data.length; i += 4) img.data[i] = 255; }
@@ -890,14 +892,14 @@ const infernus = (function () {
   }
   // one upright face in one screen column. Its edges are snapped to a coarse grid, as on the first PlayStation, so they shiver as you move.
   function face(x, d, lo, up, zr, n, u, sh, hor, K, posts) {
-    const dd = Math.max(d, .03), top = Math.round((hor - (up - zr) * K / dd) / SNAP) * SNAP, bot = Math.round((hor - (lo - zr) * K / dd) / SNAP) * SNAP, tx = TEX[T[n]];
-    const e = Math.exp(-dd * FOGK), haze = FOG * (1 - e), fall = Math.min(1, 5 / (1 + .03 * dd * dd)) * sh * 255 * e, edge = Math.min(1, 8 / (1 + .02 * dd * dd)) * 255 * e;
-    const tu = Math.min(tx.w - 1, Math.floor((TS[n] + u) / tx.span * tx.w)), ya = Math.max(0, top), yz = Math.min(H - 1, bot), uw = Math.max(.015, dd * .005), post = posts && tx.span === 1 && (u < uw || u > 1 - uw), q = dd / K;
+    const dd = Math.max(d, .03), top = Math.round((hor - (up - zr) * K / dd) / SNAP) * SNAP, bot = Math.round((hor - (lo - zr) * K / dd) / SNAP) * SNAP, t0 = TEX[T[n]], lvl = Math.max(0, Math.min(3, Math.round(Math.log2(t0.h / WALLH * dd / K)))), tx = t0.lv[lvl], alt = TEX[WALLV[0].plain[0]].lv[lvl];
+    const e = Math.exp(-dd * FOGK), haze = FOG * (1 - e), fall = Math.min(1, 6 / (1 + .012 * dd * dd)) * sh * 255 * e, edge = Math.min(1, 8 / (1 + .01 * dd * dd)) * 255 * e;
+    const tu = Math.min(tx.w - 1, Math.floor((TS[n] + u) / t0.span * tx.w)), ya = Math.max(0, top), yz = Math.min(H - 1, bot), uw = Math.max(.015, dd * .005), post = posts && t0.span === 1 && (u < uw || u > 1 - uw), q = dd / K;
     for (let y = ya; y <= yz; y++) {
       const j = y * W + x; if (done[j]) continue; done[j] = 1;
-      let v = (zr - (y - hor) * q - lo) / WALLH; v -= Math.floor(v);
+      let v = (zr - (y - hor) * q - lo) / WALLH; const tt = t0.once && v >= 1 ? alt : tx; v -= Math.floor(v);
       const worn = (Math.imul(n * 131 + (y >> 2), 2654435761) >>> 0 & 15) ? 1 : .45;     // here and there the line has worn thin
-      buf[j] = haze + (y <= ya + 1 || y === yz ? edge * worn : post ? edge * .45 * worn : tx.d[Math.min(tx.h - 1, Math.floor((1 - v) * tx.h)) * tx.w + tu] / 255 * fall);
+      buf[j] = haze + (y <= ya + 1 || y === yz ? edge * worn : post ? edge * .45 * worn : tt.d[Math.min(tt.h - 1, Math.floor((1 - v) * tt.h)) * tt.w + Math.min(tt.w - 1, tu)] / 255 * fall);
     }
     return top;
   }
@@ -961,7 +963,7 @@ const infernus = (function () {
         if (M[n] !== 1 && CH[n] < hcb - .01) {      // a face hanging down: the wall over a doorway, a lower vault
           const lo = CH[n], up = hcb < 90 ? hcb : Math.max(lo + .5, chunks[mx / S | 0].wh), dd = Math.max(dOut, .03), top = hor - (up - zr) * K / dd, bot = hor - (lo - zr) * K / dd, tx = TEX[T[n]];
           let u = side ? ex : ey; u -= Math.floor(u);
-          const e = Math.exp(-dd * FOGK), haze = FOG * (1 - e), fall = Math.min(1, 5 / (1 + .03 * dd * dd)) * (side ? .8 : 1) * 255 * e, edge = Math.min(1, 8 / (1 + .02 * dd * dd)) * 255 * e, tu = Math.min(tx.w - 1, Math.floor(u * tx.w / tx.span)), yb = Math.min(H - 1, Math.floor(bot));
+          const e = Math.exp(-dd * FOGK), haze = FOG * (1 - e), fall = Math.min(1, 6 / (1 + .012 * dd * dd)) * (side ? .8 : 1) * 255 * e, edge = Math.min(1, 8 / (1 + .01 * dd * dd)) * 255 * e, tu = Math.min(tx.w - 1, Math.floor(u * tx.w / tx.span)), yb = Math.min(H - 1, Math.floor(bot));
           for (let y = Math.max(0, Math.ceil(top)); y <= yb; y++) {
             const j = y * W + x; if (done[j]) continue; done[j] = 1;
             let v = (zr - (y - hor) * dd / K) / WALLH; v -= Math.floor(v);
