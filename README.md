@@ -12,6 +12,12 @@ The mirror (`speculum`) of [Annulus](https://github.com/KeychainofSolomon/Annulu
   - **Pitfalls:** fall into a chasm and you land in another chamber.
   - **Hidden ways:** some walls are false. A hairline crack is the tell; face it and press E.
   - **Set plans and parts:** the first chamber of each circle entered by a door or a hidden way has a set plan after Dante's buildings (the noble castle, Minos's seat, the mire, the round of the weights, Styx and its tower, the wall of Dis and its tombs, the broken cliff and the river of blood, the ditches and bridges of Malebolge with their well, the ice of Cocytus). Every other chamber is put together from parts and never the same way as the one before it.
+  - **Roofs:** where a chamber has one it is drawn: a built ceiling, a cavern, or rafters. Doorways are low passages through the wall.
+  - **Looking up and down:** move the mouse, or press R and F.
+  - **Towers and shafts:** stairs wind up above the walls and down into deep shafts; narrow ways cross over drops.
+  - **Ledges:** some doors open high over the next circle. You see it from above, step off, and cannot climb back.
+  - **Size:** some doors make you larger or smaller, so a wall becomes a step or a step a wall. Some ways are only painted on the wall.
+  - **Returning:** ways that lead back prefer the set chambers, so those become the places everything folds back to.
   - **Not shown in this build:** Purgatory's entries (the suspected and the proscribed). The plain register still lists them.
 - **Read plainly:** the same records as a plain register.
 

@@ -143,11 +143,11 @@ button:hover { background: var(--lapis-band); border-color: var(--pewter); }
     </footer>
   </div>
   <div class="infernus" id="infernus" hidden>
-    <canvas id="hell" tabindex="0" aria-label="Hell. Walk with W A S D, turn with the arrow keys, leap with Space, read with E."></canvas>
+    <canvas id="hell" tabindex="0" aria-label="Hell. Walk with W A S D, turn with the arrow keys, look up and down with R and F, leap with Space, read with E."></canvas>
     <div class="locus"><b id="locus"></b><span id="sensus"></span></div>
     <div class="iter"><span id="found"></span><button id="to-register">Plain register</button><button id="ascend">Lower the mirror</button></div>
     <div class="prompt" id="prompt"></div>
-    <div class="usus">W A S D walk · mouse or ← → turn · Space leap · E read or try a wall · Esc rise</div>
+    <div class="usus">W A S D walk · mouse or ← → turn · mouse or R F look up and down · Space leap · E read or try a wall · Esc rise</div>
     <div class="aside lectio" id="lectio" hidden></div>
   </div>
   <div class="depth" aria-hidden="true"><canvas id="deep-water" width="192" height="120"></canvas></div>
@@ -516,7 +516,12 @@ addEventListener("resize", () => { if (!moving) { measure(); place(depth); } });
        before it, from the Vessel's last fingerprint and the way you came. A chamber may
        or may not be given a way down: the next circle exists only where one was made.
        Doors join chambers that could not lie side by side, and some lead back to
-       chambers already walked, so there is no map of it and no break between circles. */
+       chambers already walked, so there is no map of it and no break between circles.
+   [O] After Dark Souls: places fold back on a few known chambers, and ledges look out
+       over the circle below before you drop into it with no way back up.
+   [O] After Superliminal: some doors change your size, and some ways are only painted.
+   [O] After Shadow Tower and King's Field: narrow ways over drops, stairs wound round
+       shafts and towers, false walls. */
 const infernus = (function () {
   const S = 16, NB = 72, MW = S * NB, MH = S;
   const M = new Uint8Array(MW * MH).fill(1), T = new Uint8Array(MW * MH), TS = new Uint8Array(MW * MH), SP = new Int16Array(MW * MH).fill(-1);
@@ -585,6 +590,10 @@ const infernus = (function () {
   });
   const STARS = tex(128, 128, (g) => { for (let i = 0; i < 60; i++) { g.globalAlpha = .5 + .5 * Math.random(); g.fillRect(Math.random() * 128, Math.random() * 92, 1.5, 1.5); } g.globalAlpha = 1; g.font = "bold 9px Palatino, Georgia, serif"; g.fillText("E QUINDI USCIMMO", 64, 108); g.fillText("A RIVEDER LE STELLE", 64, 120); });
   const SECRET = tex(128, 128, (g, w, h) => { masonry(g, w, h); g.globalAlpha = .8; g.beginPath(); g.moveTo(60, 128); for (const [x, y] of [[63, 104], [58, 86], [66, 70], [61, 52], [65, 40]]) g.lineTo(x, y); g.stroke(); });
+  // [O] after Superliminal: a way painted on a wall, that is only paint
+  const PAINTED = tex(128, 128, (g, w, h) => { masonry(g, w, h); g.fillStyle = "#000"; g.beginPath(); g.moveTo(14, 128); g.lineTo(14, 56); g.arc(64, 56, 50, Math.PI, 0); g.lineTo(114, 128); g.fill(); g.stroke();
+    for (const k of [.72, .5, .33, .2]) { g.globalAlpha = .35 + k * .6; g.strokeRect(64 - 50 * k, 84 - 60 * k, 100 * k, 104 * k); } g.globalAlpha = .7;
+    for (const [x, y] of [[14, 128], [114, 128], [14, 30], [114, 30]]) { g.beginPath(); g.moveTo(x, y); g.lineTo(64 + (x - 64) * .2, 84 + (y > 60 ? 9 : -12)); g.stroke(); } });
   const ARCH = tex(128, 128, (g, w, h) => { masonry(g, w, h); g.fillStyle = "#000"; g.beginPath(); g.moveTo(14, 128); g.lineTo(14, 56); g.arc(64, 56, 50, Math.PI, 0); g.lineTo(114, 128); g.fill(); g.stroke(); });
 
   /* ---- the shapes of the condemned: four frames each, black bodies in white line ---- */
@@ -614,13 +623,15 @@ const infernus = (function () {
      set plan taken from Dante's buildings; every other chamber is put together from
      parts, and never the same way as the one before it. */
   const WALLH = 2.4, DEEP = -6, STEP = .32, EYE = .75;
-  const HH = new Float32Array(MW * MH).fill(WALLH), SR = new Float32Array(MW * MH), SD = new Uint8Array(MW * MH), FT = new Uint8Array(MW * MH);
+  const HH = new Float32Array(MW * MH).fill(WALLH), SR = new Float32Array(MW * MH), SD = new Uint8Array(MW * MH), FT = new Uint8Array(MW * MH), CH = new Float32Array(MW * MH).fill(99), CT = new Uint8Array(MW * MH);
   const gr = (c, fx, fy) => { const d = SD[c]; return d ? HH[c] + SR[c] * (d === 1 ? fx : d === 2 ? fy : d === 3 ? 1 - fx : 1 - fy) : HH[c]; };
   const chunks = [], sprites = [], pending = {}, made = {}, fixed = {}, secretAt = new Map();
   let total = 0;
   for (const st of ["vas", "index"]) REGISTRUM[st].records.forEach((r, n) => { const fm = FORM[r.kind]; if (!fm) return; (pending[fm[1]] ||= []).push({ form: fm[0], store: st, r, n }); total++; });
   const doorCells = (d) => d === 0 ? [[15, 7], [15, 8]] : d === 1 ? [[7, 15], [8, 15]] : d === 2 ? [[0, 7], [0, 8]] : [[7, 0], [8, 0]];
-  const DROP = { same: 0, loop: 0, secret: 0, back: 0, down: 1.5, deep: 3, up: -1.5 };
+  const DROP = { same: 0, loop: 0, secret: 0, back: 0, ledge: 0, scale: 0, down: 1.5, deep: 3, up: -1.5 };
+  const RING = [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [5, 1], [5, 2], [5, 3], [5, 4], [5, 5], [4, 5], [3, 5], [2, 5], [1, 5], [0, 5], [0, 4], [0, 3], [0, 2], [0, 1]];
+  const SWH = [3.6, 4.8, 2.4, 3.6, 2.4, 4.8, 3.6, 2.4, 4.8];
   const Qm = [(u, v) => [6 - u, 6 - v], (u, v) => [9 + u, 6 - v], (u, v) => [9 + u, 9 + v], (u, v) => [6 - u, 9 + v]];
 
   function build(circle, entry, seed, dry, kind, opt) {
@@ -630,10 +641,10 @@ const infernus = (function () {
     const ch = { id, circle, kind, seed, dry, doors: [null, null, null, null], fall: null, sig: "", land: null };
     chunks.push(ch);
     const wt = WALL[Math.min(8, Math.max(0, circle))];
-    for (let ly = 0; ly < S; ly++) for (let lx = 0; lx < S; lx++) { const c = at(ox + lx, ly); HH[c] = WALLH; M[c] = 1; SD[c] = 0; SR[c] = 0; FT[c] = 0; T[c] = wt; TS[c] = 0; SP[c] = -1; }
+    for (let ly = 0; ly < S; ly++) for (let lx = 0; lx < S; lx++) { const c = at(ox + lx, ly); HH[c] = WALLH; M[c] = 1; SD[c] = 0; SR[c] = 0; FT[c] = 0; CH[c] = 99; CT[c] = 0; T[c] = wt; TS[c] = 0; SP[c] = -1; }
     // everything below is drawn as if you came in by the north door, then turned to the door you did come by
     const R = (x, y) => { for (let i = 0; i < q; i++) { const t = x; x = 15 - y; y = t; } return at(ox + x, y); };
-    const put = (x, y, h, ft, sd, sr) => { const c = R(x, y); HH[c] = h; M[c] = h >= WALLH ? 1 : 0; FT[c] = ft || 0; SD[c] = sd == null ? 0 : (sd + q) % 4 + 1; SR[c] = sr || 0; return c; };
+    const put = (x, y, h, ft, sd, sr) => { const c = R(x, y); HH[c] = h; M[c] = h === WALLH ? 1 : 0; FT[c] = ft || 0; SD[c] = sd == null ? 0 : (sd + q) % 4 + 1; SR[c] = sr || 0; return c; };
     const A = (cd) => (cd + q) % 4;
     const armCells = (cd, k) => [7, 8].map((l) => DX[cd] ? [DX[cd] > 0 ? 8 + k : 7 - k, l] : [l, DY[cd] > 0 ? 8 + k : 7 - k]);
     const arm = (cd, drop, fissure) => {
@@ -644,7 +655,7 @@ const infernus = (function () {
       }
     };
     const door = (cd, k, fissure) => {
-      arm(cd, DROP[k], fissure); ch.doors[A(cd)] = { kind: k, h: -DROP[k], to: null };
+      arm(cd, DROP[k], fissure); ch.doors[A(cd)] = { kind: k, h: -DROP[k], to: null, ds: k === "scale" ? (rnd() < .5 ? 2 : .5) : 1 };
       for (const [x, y] of armCells(cd, 7)) { const c = R(x, y); T[c] = k === "secret" ? SECRET : ARCH; if (k === "secret") secretAt.set(c, [id, A(cd)]); }
     };
     const qs = (qi, u, v, h, ft) => put(Qm[qi](u, v)[0], Qm[qi](u, v)[1], h, ft);
@@ -660,6 +671,9 @@ const infernus = (function () {
       tombs: (qi) => { each((u, v) => qs(qi, u, v, u % 2 && v % 2 ? .45 : 0)); return Qm[qi](4, 4); },
       mound: (qi) => { each((u, v) => qs(qi, u, v, Math.min(u, v, 5 - u, 5 - v) * .3)); return Qm[qi](2, 2); },
       maze: (qi) => { for (const [u, v] of [[0, 2], [1, 2], [2, 2], [2, 3], [2, 4], [1, 4], [3, 4], [4, 4], [4, 3], [4, 2], [4, 1], [4, 0]]) qs(qi, u, v, 0); return Qm[qi](1, 4); },
+      tower: (qi) => { each((u, v) => qs(qi, u, v, 4.2)); RING.forEach(([u, v], i) => qs(qi, u, v, Math.min(4.2, .3 * (i + 1)))); return Qm[qi](2, 2); },        // a stair winding up to a height above the walls
+      shaft: (qi) => { each((u, v) => qs(qi, u, v, -3.6)); RING.forEach(([u, v], i) => qs(qi, u, v, Math.max(-3.6, -.3 * (i + 1)))); return Qm[qi](3, 3); },   // a stair winding down a deep shaft
+      catwalk: (qi) => { each((u, v) => qs(qi, u, v, DEEP, 1)); for (const [u, v] of [[0, 1], [1, 1], [2, 1], [2, 2], [2, 3], [3, 3], [4, 3], [4, 4], [5, 4], [4, 5], [5, 5]]) qs(qi, u, v, 0); ch.fall = ch.fall || { kind: "same", to: null }; return Qm[qi](5, 5); },   // a narrow way over a drop
       solid: () => null
     };
     const SETP = [    // the set plans, one for each circle [O], after Dante's buildings [S]
@@ -668,7 +682,7 @@ const infernus = (function () {
         after = () => { for (let y = 7; y <= 8; y++) for (let x = 7; x <= 8; x++) put(x, y, .56); for (let cd = 0; cd < 4; cd++) for (const [x, y] of armCells(cd, 1)) put(x, y, .28); }; },   // II: where Minos sits and judges (V)
       () => { for (let qi = 0; qi < 4; qi++) { each((u, v) => qs(qi, u, v, -.6, 2)); qs(qi, 0, 0, -.3); } for (const [qi, u, v] of [[2, 2, 2], [2, 4, 3], [3, 3, 3]]) qs(qi, u, v, .3); spots = [Qm[1](3, 3)]; },   // III: the mire under the rain, and three mounds for the three heads (VI)
       () => { for (let qi = 0; qi < 4; qi++) each((u, v, m) => { if (m === 3 || m === 4) qs(qi, u, v, 0); }); qs(0, 4, 4, .9); qs(2, 4, 4, .9); spots = [Qm[1](3, 3), Qm[3](3, 3)]; },             // IV: the round where the two crowds roll their weights and clash (VII)
-      () => { for (let qi = 0; qi < 4; qi++) { each((u, v) => qs(qi, u, v, -.5, 2)); qs(qi, 0, 0, -.25); } for (const [u, v] of [[3, 3], [3, 4], [4, 3], [4, 4]]) qs(0, u, v, WALLH); spots = [Qm[2](3, 3)]; },  // V: the marsh of Styx, causeways over it, and the signal tower (VII-VIII)
+      () => { for (let qi = 0; qi < 4; qi++) { each((u, v) => qs(qi, u, v, -.5, 2)); qs(qi, 0, 0, -.25); } ch.spire = [[3, 3], [3, 4], [4, 3], [4, 4]].map(([u, v]) => qs(0, u, v, WALLH)); spots = [Qm[2](3, 3)]; },  // V: the marsh of Styx, causeways over it, and the signal tower (VII-VIII)
       () => { spots = [MOD.tombs(2), MOD.tombs(3)]; [[6, 2], [6, 3], [6, 4], [6, 5], [9, 2], [9, 3], [9, 4]].forEach(([x, y], i) => T[R(x, y)] = SENATOR[i]); },                                  // VI: the wall and gate of Dis, and the open tombs beyond (VIII-X)
       () => { for (const qi of [0, 1]) each((u, v, m) => qs(qi, u, v, -.2 * m)); for (const qi of [2, 3]) { each((u, v) => qs(qi, u, v, -1.2, 2)); for (let v = 0; v < 3; v++) qs(qi, 0, v, -.3 * (v + 1)); } spots = [Qm[1](3, 3)]; },   // VII: the broken cliff, and the river of blood (XII)
       () => { for (let qi = 0; qi < 4; qi++) { each((u, v, m) => qs(qi, u, v, m === 2 || m === 4 ? -1.2 : 0)); for (const m of [2, 4]) for (let u = 0; u < 3; u++) qs(qi, u, m, -.3 * (u + 1)); }
@@ -691,8 +705,8 @@ const infernus = (function () {
         let k = null;
         if (rnd() < .75) {
           const x = rnd();
-          k = !down && x < .3 ? "down" : !down && x < .38 && circle <= 6 ? "deep" : x < .46 && circle >= 1 ? "up" : x < .6 ? "loop" : x < .74 ? "secret" : "same";
-          if (k === "down" || k === "deep") down = true;
+          k = !down && x < .24 ? "down" : !down && x < .33 && circle <= 7 ? "ledge" : !down && x < .39 && circle <= 6 ? "deep" : x < .46 && circle >= 1 ? "up" : x < .6 ? "loop" : x < .72 ? "secret" : x < .8 ? "scale" : "same";
+          if (k === "down" || k === "deep" || k === "ledge") down = true;
           if (k !== "secret" && k !== "up") any = true;
         }
         kinds.push([cd, k]);
@@ -702,7 +716,7 @@ const infernus = (function () {
       if (!any) kinds[1][1] = "same";
       ch.dry = down ? 0 : dry + 1;
       if (!opt.fallen) arm(3, 0);
-      for (const [cd, k] of kinds) { if (k) door(cd, k, !set && DROP[k] === 0 && k !== "secret" && rnd() < .22); else arm(cd, 0); }
+      for (const [cd, k] of kinds) { if (k) door(cd, k, !set && DROP[k] === 0 && k !== "secret" && rnd() < .22); else { arm(cd, 0); if (rnd() < .3) for (const [x, y] of armCells(cd, 7)) T[R(x, y)] = PAINTED; } }
       if (set) { fixed[circle] = true; SETP[circle](); ch.sig = "set" + circle; }
       else for (let tries = 0; tries < 6; tries++) {
         const names = Object.keys(MOD).sort(() => rnd() - .5).slice(0, 4);
@@ -714,6 +728,17 @@ const infernus = (function () {
       if (after) after();
       if (!set && rnd() < .4) { T[at(ox + 4, 0)] = KING[3]; T[at(ox + 15, 4)] = KING[0]; T[at(ox + 11, 15)] = KING[1]; T[at(ox, 11)] = KING[2]; }
     }
+    // how high the walls stand, and the roof where there is one: 1 a built ceiling, 2 a cavern, 3 rafters; 0 is open dark
+    const tall = ch.sig.includes("tower"), set = ch.sig.startsWith("set");
+    const wh = ch.wh = kind !== "room" ? 3.6 : set ? SWH[circle] : tall ? 3.6 : [2.4, 2.4, 3.6, 4.8][Math.floor(rnd() * 4)];
+    const roof = ch.roof = kind === "gate" ? 1 : kind === "exit" ? 2 : opt.fallen || opt.high || tall ? 0 : set ? [0, 1, 2, 2, 0, 0, 2, 0, 2][circle] : [0, 2, 2, 1, 3, 2, 0, 1, 3, 2][Math.floor(rnd() * 10)];
+    for (let ly = 0; ly < S; ly++) for (let lx = 0; lx < S; lx++) {
+      const c = at(ox + lx, ly);
+      if (M[c] === 1) { HH[c] = wh; continue; }
+      if (roof) { CT[c] = roof; CH[c] = roof === 1 ? wh + .6 : roof === 3 ? wh + .4 : wh + .7 + (Math.imul(c, 2654435761) >>> 0) / 4294967296 * 1.3; }
+    }
+    if (ch.spire) for (const c of ch.spire) HH[c] = 7;
+    if (roof) for (let cd = 0; cd < 4; cd++) for (const [x, y] of armCells(cd, 6)) { const c = R(x, y); if (M[c] !== 1) { CT[c] = 1; CH[c] = HH[c] + SR[c] + 1.9; } }   // the passage through the wall is low
     ch.land = R(7, 4);
     const list = pending[circle]; made[circle] = (made[circle] || 0) + 1;
     while (list && list.length && spots.length && (kind === "gate" || opt.vault || made[circle] > 2 || rnd() < .7)) {
@@ -726,20 +751,24 @@ const infernus = (function () {
     const o = (d + 2) % 4, ca = doorCells(d), cb = doorCells(o), ha = a.doors[d].h, hb = b.doors[o].h || 0;
     for (let i = 0; i < 2; i++) {
       const ax = a.id * S + ca[i][0], ay = ca[i][1], bx = b.id * S + cb[i][0], by = cb[i][1];
-      for (const [c, h] of [[at(ax, ay), ha], [at(bx, by), hb]]) { M[c] = 0; HH[c] = h; SD[c] = 0; secretAt.delete(c); }
-      portal.set(at(ax, ay) * 4 + d, [bx - ax - DX[d], by - ay - DY[d], hb - ha]); portal.set(at(bx, by) * 4 + o, [ax - bx - DX[o], ay - by - DY[o], ha - hb]);
+      for (const [c, h] of [[at(ax, ay), ha], [at(bx, by), hb]]) { M[c] = 0; HH[c] = h; SD[c] = 0; CT[c] = 1; CH[c] = h + 1.9; secretAt.delete(c); }
+      const ds = a.doors[d].ds || 1;
+      portal.set(at(ax, ay) * 4 + d, [bx - ax - DX[d], by - ay - DY[d], hb - ha, ds]); portal.set(at(bx, by) * 4 + o, [ax - bx - DX[o], ay - by - DY[o], ha - hb, 1 / ds]);
     }
   }
   function open(ch, d) {                         // make what lies past one door
     const door = ch.doors[d]; if (!door || door.to) return;
     const sd = Math.imul(ch.seed, 31) + d * 7919 + 17 | 0, rnd = mulberry(sd), o = (d + 2) % 4;
     let to = null;
-    if (door.kind === "loop") { const c = chunks.filter((x) => x !== ch && x.kind === "room" && !x.doors[o]); if (c.length) { to = c[Math.floor(rnd() * c.length)]; to.doors[o] = { kind: "loop", h: 0, to: ch }; } }
+    if (door.kind === "loop") {               // ways lead back, and first to the set chambers, so those become the places everything returns to
+      let c = chunks.filter((x) => x !== ch && x.kind === "room" && !x.doors[o]); const hubs = c.filter((x) => x.sig.startsWith("set")); if (hubs.length) c = hubs;
+      if (c.length) { to = c[Math.floor(rnd() * c.length)]; to.doors[o] = { kind: "loop", h: 0, to: ch }; }
+    }
     if (!to) {
-      const c2 = Math.max(0, ch.circle + (door.kind === "down" ? 1 : door.kind === "deep" ? 2 : door.kind === "up" ? -1 : 0));
-      to = c2 > 8 ? build(9, o, sd, 0, "exit") : build(c2, o, sd, ch.dry, "room", { sig: ch.sig, vault: door.kind === "secret" });
+      const c2 = Math.max(0, ch.circle + (door.kind === "down" || door.kind === "ledge" ? 1 : door.kind === "deep" ? 2 : door.kind === "up" ? -1 : 0));
+      to = c2 > 8 ? build(9, o, sd, 0, "exit") : build(c2, o, sd, ch.dry, "room", { sig: ch.sig, vault: door.kind === "secret", high: door.kind === "ledge" });
       if (!to) { ch.doors[d] = null; for (const [lx, ly] of doorCells(d)) T[at(ch.id * S + lx, ly)] = WALL[Math.min(8, Math.max(0, ch.circle))]; return; }
-      to.doors[o] = { kind: "back", h: 0, to: ch };
+      to.doors[o] = { kind: "back", h: door.kind === "ledge" ? 4 : 0, to: ch };   // a ledge looks out over the next circle from above; step off and there is no way back up
     }
     door.to = to; join(ch, d, to);
   }
@@ -752,7 +781,7 @@ const infernus = (function () {
   /* ---- the eye ---- */
   const cv = $("hell"), g = cv.getContext("2d");
   let W = 480, H = 270, img, buf, done;
-  const P = { x: 8, y: 5, a: -Math.PI / 2, f: 0, vz: 0 };
+  const P = { x: 8, y: 5, a: -Math.PI / 2, f: 0, vz: 0, s: 1, sT: 1, p: 0 };
   const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5], PL = .72;
   let target = null, hollow = null, reading = false, on = false, last = 0, cur = 0, grounded = true;
   const keys = new Set();
@@ -767,16 +796,16 @@ const infernus = (function () {
       const tx = Math.floor(qx), ty = Math.floor(qy);
       if (tx < 0 || ty < 0 || tx >= MW || ty >= MH) continue;
       const c = at(tx, ty);
-      if (M[c] === 5 || gr(c, qx - tx, qy - ty) - (P.f + dz) > STEP) continue;
+      if (M[c] === 5 || gr(c, qx - tx, qy - ty) - (P.f + dz) > STEP * P.s) continue;
       if (ax) P.y += d; else P.x += d;
-      if (Math.floor(ax ? P.y : P.x) !== (ax ? cy : cx)) { const p2 = portal.get(at(cx, cy) * 4 + dir); if (p2) { P.x += p2[0]; P.y += p2[1]; P.f += p2[2]; } }
+      if (Math.floor(ax ? P.y : P.x) !== (ax ? cy : cx)) { const p2 = portal.get(at(cx, cy) * 4 + dir); if (p2) { P.x += p2[0]; P.y += p2[1]; P.f += p2[2]; if (p2[3] && p2[3] !== 1) P.sT = Math.min(2, Math.max(.5, P.sT * p2[3])); } }
     }
   }
   function where() { return chunks[Math.floor(P.x / S)].circle; }
   function hud() {
     const b = where();
     $("locus").textContent = b < 0 ? "THE GATE" : b > 8 ? "THE WAY OUT" : "CIRCLE " + CIRCLES[b][0] + " · " + CIRCLES[b][1].toUpperCase();
-    $("sensus").textContent = b < 0 ? "It has shut behind you. The history of the Vessel stands here. Turn, and go on: the way is made as you walk it." : b > 8 ? "Past the centre, to see the stars again." : CIRCLES[b][2];
+    $("sensus").textContent = b < 0 ? "It has shut behind you. The history of the Vessel stands here. Turn, and go on: the way is made as you walk it." : b > 8 ? "Past the centre, to see the stars again." : (CIRCLES[b][2] + (P.sT > 1.2 ? " You have grown: what was a wall is a step." : P.sT < .8 ? " You have dwindled: what was a step is a wall." : "")).trim();
     $("found").textContent = sprites.filter((s) => s.seen).length + " of " + total + " records read · facing " + "ESWN"[(Math.round(P.a / (Math.PI / 2)) % 4 + 4) % 4];
     $("prompt").textContent = reading ? "" : target ? "E · read: " + explain(target.store, target.r).kind : hollow ? "E · the wall sounds hollow" : "";
   }
@@ -795,12 +824,14 @@ const infernus = (function () {
     const dt = Math.min(.05, (t - last) / 1000 || 0); last = t;
     if (!reading && depth === 1) {
       const turn = (keys.has("ArrowLeft") ? -1 : 0) + (keys.has("ArrowRight") ? 1 : 0); P.a += turn * 2.2 * dt;
+      P.p = Math.max(-.85, Math.min(.85, P.p + ((keys.has("KeyR") || keys.has("PageUp") ? 1 : 0) - (keys.has("KeyF") || keys.has("PageDown") ? 1 : 0)) * 1.4 * dt));
       const f = (keys.has("KeyW") || keys.has("ArrowUp") ? 1 : 0) - (keys.has("KeyS") || keys.has("ArrowDown") ? 1 : 0), s = (keys.has("KeyD") ? 1 : 0) - (keys.has("KeyA") ? 1 : 0);
-      const v = 3.1 * dt, ca = Math.cos(P.a), sa = Math.sin(P.a);
+      P.s += (P.sT - P.s) * Math.min(1, dt * 1.2);
+      const v = 3.1 * dt * Math.pow(P.s, .6), ca = Math.cos(P.a), sa = Math.sin(P.a);
       move((ca * f - sa * s) * v, (sa * f + ca * s) * v);
       const cx = Math.floor(P.x), cy = Math.floor(P.y), gh = gr(at(cx, cy), P.x - cx, P.y - cy);
-      if (grounded && keys.has("Space")) { P.vz = 3.1; grounded = false; }
-      if (grounded && P.f - gh < .36) P.f = gh;                       // keep to the ground down ramps and small steps
+      if (grounded && keys.has("Space")) { P.vz = 3.1 * Math.sqrt(P.s); grounded = false; }
+      if (grounded && P.f - gh < .36 * P.s) P.f = gh;                       // keep to the ground down ramps and small steps
       else { grounded = false; P.vz = Math.max(-13, P.vz - 8 * dt); P.f += P.vz * dt; if (P.f <= gh) { P.f = gh; P.vz = 0; grounded = true; } }
       let here = Math.floor(P.x / S); if (here !== cur) { cur = here; unfold(chunks[cur]); }
       if (P.f < -4.5) {                                               // a pitfall: you land elsewhere
@@ -812,12 +843,12 @@ const infernus = (function () {
     draw(t); hud();
   }
   function draw(t) {
-    const hor = H >> 1, K = H * .95, dx = Math.cos(P.a), dy = Math.sin(P.a), px = -dy * PL, py = dx * PL, fr = Math.floor(t / 170), mid = W >> 1;
+    const hor = (H >> 1) + Math.round(P.p * H), K = H * .95, dx = Math.cos(P.a), dy = Math.sin(P.a), px = -dy * PL, py = dx * PL, fr = Math.floor(t / 170), mid = W >> 1;
     buf.fill(0); done.fill(0); target = null; hollow = null;
     const pcx = Math.floor(P.x), pcy = Math.floor(P.y), h0 = gr(at(pcx, pcy), P.x - pcx, P.y - pcy);
     for (let x = 0; x < W; x++) {
       const cam = 2 * x / W - 1, rx = dx + px * cam, ry = dy + py * cam, ddx = Math.abs(1 / rx), ddy = Math.abs(1 / ry);
-      let mx = pcx, my = pcy, ox = 0, oy = 0, zr = P.f + EYE, dIn = 0, hin = h0;
+      let mx = pcx, my = pcy, ox = 0, oy = 0, zr = P.f + EYE * P.s, dIn = 0, hin = h0;
       let sdx = rx < 0 ? (P.x - mx) * ddx : (mx + 1 - P.x) * ddx, sdy = ry < 0 ? (P.y - my) * ddy : (my + 1 - P.y) * ddy;
       for (let i = 0; i < 64; i++) {
         const c = my * MW + mx, side = sdx < sdy ? 0 : 1, dOut = side ? sdy : sdx;
@@ -845,50 +876,72 @@ const infernus = (function () {
               if (ft === 1) continue;
               const den = y - hor + K * m; if (den < .001) continue;
               const d = num / den, wx = P.x + ox + d * rx, wy = P.y + oy + d * ry, u = wx - Math.floor(wx), w = wy - Math.floor(wy);
-              buf[j] = (ft === 2 ? ((u + w) * 3 % 1 < .1 ? .5 : .06) : u < .05 || w < .05 ? .62 : Math.abs(u - .5) + Math.abs(w - .5) < .07 ? .5 : .1) * Math.min(1, 2 / (1 + .25 * d * d)) * 255;
+              const lw = Math.max(.035, d * .009);
+              buf[j] = (ft === 2 ? ((u + w) * 3 % 1 < lw * 3 ? .55 : 0) : u < lw || w < lw ? .7 : 0) * Math.min(1, 3 / (1 + .1 * d * d)) * 255;
             }
           }
         }
+        const hc = CH[c];                          // the ceiling of this cell, if it has one
+        if (hc < 90 && hc > zr && dOut > d1) {
+          const ct = CT[c], q = (hc - zr) * K;
+          for (let y = Math.max(0, Math.ceil(hor - q / d1)); y <= Math.min(hor - 1, hor - q / dOut); y++) {
+            const j = y * W + x; if (done[j]) continue; done[j] = 1;
+            const d = q / (hor - y), wx = P.x + ox + d * rx, wy = P.y + oy + d * ry, u = wx - Math.floor(wx), w = wy - Math.floor(wy);
+            const lw = Math.max(.035, d * .009), k = (Math.sin(wx * 2.3) + Math.cos(wy * 1.9 + wx * .7)) * 1.5;
+            buf[j] = (ct === 1 ? (u < lw || w < lw ? .6 : 0) : ct === 3 ? (w * 2 % 1 < .16 ? .75 : u < lw ? .35 : 0) : k - Math.floor(k) < lw * 1.6 ? .5 : 0) * Math.min(1, 3 / (1 + .1 * d * d)) * 255;
+          }
+        }
         let d; if (!side) { sdx += ddx; d = rx > 0 ? 0 : 2; } else { sdy += ddy; d = ry > 0 ? 1 : 3; }
-        const pd = portal.get(c * 4 + d); let hb = hout;
+        const pd = portal.get(c * 4 + d); let hb = hout, hcb = hc < 90 ? hc + (pd ? pd[2] : 0) : 99;
         mx += DX[d]; my += DY[d]; if (pd) { mx += pd[0]; my += pd[1]; ox += pd[0]; oy += pd[1]; ex += pd[0]; ey += pd[1]; zr += pd[2]; hb += pd[2]; }
         if (mx < 0 || my < 0 || mx >= MW || my >= MH) break;
         const n = my * MW + mx, hn = gr(n, Math.min(1, Math.max(0, ex - mx)), Math.min(1, Math.max(0, ey - my)));
-        if (hn > hb + .01) {                       // a face rising in front of you: a step, a ledge, a wall
-          const dd = Math.max(dOut, .03), top = hor - (hn - zr) * K / dd, bot = hor - (hb - zr) * K / dd, tx = TEX[T[n]];
+        if (M[n] !== 1 && CH[n] < hcb - .01) {      // a face hanging down: the wall over a doorway, a lower vault
+          const lo = CH[n], up = hcb < 90 ? hcb : Math.max(lo + .5, chunks[mx / S | 0].wh), dd = Math.max(dOut, .03), top = hor - (up - zr) * K / dd, bot = hor - (lo - zr) * K / dd, tx = TEX[T[n]];
+          let u = side ? ex : ey; u -= Math.floor(u);
+          const fall = Math.min(1, 3 / (1 + .14 * dd * dd)) * (side ? .8 : 1) * 255, edge = Math.min(1, 6 / (1 + .04 * dd * dd)) * 255, tu = Math.min(tx.w - 1, Math.floor(u * tx.w / tx.span)), yb = Math.min(H - 1, Math.floor(bot));
+          for (let y = Math.max(0, Math.ceil(top)); y <= yb; y++) {
+            const j = y * W + x; if (done[j]) continue; done[j] = 1;
+            let v = (zr - (y - hor) * dd / K) / WALLH; v -= Math.floor(v);
+            buf[j] = y >= yb - 1 ? edge : tx.d[Math.min(tx.h - 1, Math.floor((1 - v) * tx.h)) * tx.w + tu] / 255 * fall;
+          }
+        }
+        const hu = M[n] === 1 && hcb < 90 ? Math.max(hn, hcb) : hn;   // under a roof, a wall runs up to it
+        if (hu > hb + .01) {                       // a face rising in front of you: a step, a ledge, a wall
+          const dd = Math.max(dOut, .03), top = hor - (hu - zr) * K / dd, bot = hor - (hb - zr) * K / dd, tx = TEX[T[n]];
           let u = side ? ex : ey; u -= Math.floor(u); if ((!side && rx < 0) || (side && ry > 0)) u = 1 - u;
           if (x === mid && dd < 1.7 && secretAt.has(n)) hollow = secretAt.get(n);
-          const fall = Math.min(1, 2.6 / (1 + .2 * dd * dd)) * (side ? .78 : 1) * 255, tu = Math.min(tx.w - 1, Math.floor((TS[n] + u) / tx.span * tx.w)), ya = Math.max(0, Math.ceil(top)), lip = hn < WALLH;
+          const fall = Math.min(1, 3 / (1 + .14 * dd * dd)) * (side ? .8 : 1) * 255, edge = Math.min(1, 6 / (1 + .04 * dd * dd)) * 255, tu = Math.min(tx.w - 1, Math.floor((TS[n] + u) / tx.span * tx.w)), ya = Math.max(0, Math.ceil(top)), yz = Math.min(H - 1, Math.floor(bot)), uw = Math.max(.015, dd * .005), post = M[n] === 1 && (u < uw || u > 1 - uw);
           for (let y = ya; y <= Math.min(H - 1, bot); y++) {
             const j = y * W + x; if (done[j]) continue; done[j] = 1;
             let v = (zr - (y - hor) * dd / K - hb) / WALLH; v -= Math.floor(v);
-            buf[j] = lip && y === ya ? fall : (.13 + .87 * tx.d[Math.min(tx.h - 1, Math.floor((1 - v) * tx.h)) * tx.w + tu] / 255) * fall;
+            buf[j] = y <= ya + 1 || y === yz || post ? edge : tx.d[Math.min(tx.h - 1, Math.floor((1 - v) * tx.h)) * tx.w + tu] / 255 * fall;
           }
           if (top <= 0) break;
         }
         dIn = dOut; hin = hn;
       }
     }
-    const o = img.data;                            // black or white, nothing between
-    for (let y = 0, i = 0; y < H; y++) for (let x = 0; x < W; x++, i++) o[i * 4] = o[i * 4 + 1] = o[i * 4 + 2] = buf[i] > BAYER[(y & 3) * 4 + (x & 3)] * 15 + 9 ? 242 : 0;
+    const o = img.data;                            // white line on black; lines dim with distance
+    for (let y = 0, i = 0; y < H; y++) for (let x = 0; x < W; x++, i++) { const v = buf[i]; o[i * 4] = o[i * 4 + 1] = o[i * 4 + 2] = v < 30 ? 0 : Math.min(242, v * 1.25); }
     g.putImageData(img, 0, 0);
   }
-  function enter() { on = true; size(); P.x = 8; P.y = 5; P.f = 0; P.vz = 0; grounded = true; cur = 0; P.a = -Math.PI / 2; reading = false; $("lectio").hidden = true; last = performance.now(); }
+  function enter() { on = true; size(); P.x = 8; P.y = 5; P.f = 0; P.vz = 0; P.s = P.sT = 1; P.p = 0; grounded = true; cur = 0; P.a = -Math.PI / 2; reading = false; $("lectio").hidden = true; last = performance.now(); }
   function leave() { on = depth > 0; if (document.pointerLockElement) document.exitPointerLock(); reading = false; $("lectio").hidden = true; travel(0, () => { on = false; $("glass").focus(); }); }
   addEventListener("keydown", (e) => {
     if (!on || scene !== "hell") return;
     if (e.code === "KeyE" || (e.code === "Escape" && reading)) { read(); e.stopImmediatePropagation(); e.preventDefault(); return; }
-    keys.add(e.code); if (e.code === "Space" || e.code.startsWith("Arrow")) e.preventDefault();
+    keys.add(e.code); if (e.code === "Space" || e.code.startsWith("Arrow") || e.code.startsWith("Page")) e.preventDefault();
   }, true);
   addEventListener("keyup", (e) => keys.delete(e.code));
   addEventListener("blur", () => keys.clear());
   cv.addEventListener("click", () => { if (reading) return; if (target) read(); else if (cv.requestPointerLock) { try { const p = cv.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) {} } });
   let drag = false;
   cv.addEventListener("pointerdown", () => drag = true); addEventListener("pointerup", () => drag = false);
-  addEventListener("pointermove", (e) => { if (on && !reading && (document.pointerLockElement === cv || drag)) P.a += e.movementX * .0032; });
+  addEventListener("pointermove", (e) => { if (on && !reading && (document.pointerLockElement === cv || drag)) { P.a += e.movementX * .0032; P.p = Math.max(-.85, Math.min(.85, P.p - e.movementY * .0022)); } });
   addEventListener("resize", () => { if (on) size(); });
   requestAnimationFrame(frame);
-  return { enter, leave, P, sprites, chunks, S, MW, HH, M, gr, at, unfold, get on() { return on; } };
+  return { enter, leave, P, sprites, chunks, S, MW, HH, CH, M, gr, at, unfold, get on() { return on; } };
 })();
 
 $("state").innerHTML = REGISTRUM.sample
