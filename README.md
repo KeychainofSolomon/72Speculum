@@ -66,4 +66,8 @@ Public domain (see `UNLICENSE`).
 
 - **Each circle dresses its stone its own way.** The same masonry carries a different surface in each circle, with a few kinds mixed along every wall so no stretch repeats: veined marble and the odd crack in Limbo's castle, runs of filth under the gluttons' rain, the marks the marsh leaves along the walls of Styx, baked and crazed patches by the burning sand, cracks and breaches made good in small brick in Malebolge, fracture lines in the ice.
 - **Floors follow the stone.** Lozenge tiles in the second circle, riveted plates on iron, rutted mud for the gluttons and the marsh, crazed ground on the sand, fractured ice at the bottom.
-- The idea of a family of surfaces per kind of place, mixed along a wall, comes from studying the Daggerfall mod "Daggerfall Dungeon Variety" (demifiend000). None of its images are used: every surface here is computed, in white line on black.
+- **Picture textures.** Walls and floors in eight circles and in the caverns now carry real textures in grey, three wall pictures and a floor per kind of place, mixed along each wall. The line patterns above remain for the ice, door frames, hangings and screens, and as the fallback while the pictures load.
+
+## Credit
+
+The picture textures are from the Daggerfall Unity mod **"Daggerfall Dungeon Variety" by demifiend000**, which re-assigns Daggerfall's own dungeon textures (Bethesda Softworks) by kind of dungeon. They are converted to grey, softened and embedded in `index.html`. They are not Annulus's work, and the UNLICENSE in this repo covers the code only, not these pictures.
