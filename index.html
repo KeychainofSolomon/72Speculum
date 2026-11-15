@@ -553,9 +553,26 @@ const infernus = (function () {
     for (let i = 0; i < o.length; i++) o[i] = Math.min(255, d[i * 4] * 1.7);
     TEX.push({ w: w * k, h: h * k, d: o, span: w / 128 }); return TEX.length - 1;
   }
-  function masonry(g, w, h) {            // courses in 6 : 8 : 9 : 12
-    let y = 0, n = 0; g.globalAlpha = .55;
-    for (const k of [12, 9, 8, 6, 12, 9, 8, 6]) { const ch = k * h / 70; g.strokeRect(-2, y, w + 4, ch); for (let x = (n % 2) * 21; x < w; x += 42) { g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + ch); g.stroke(); } y += ch; n++; }
+  function masonry(g, w, h, kind) {      // 0: courses in 6 : 8 : 9 : 12; 1: uneven ashlar; 2: rubble
+    g.globalAlpha = .55;
+    if (kind === 2) {
+      for (let i = 0; i < 30; i++) { const x = Math.random() * w, y = Math.random() * h, r = 8 + Math.random() * 12; g.beginPath(); for (let k = 0; k < 6; k++) { const a = k / 6 * 6.283 + Math.random() * .5, q = r * (.7 + Math.random() * .5); g.lineTo(x + q * Math.cos(a), y + q * Math.sin(a)); } g.closePath(); g.fillStyle = "#000"; g.fill(); g.stroke(); }
+      g.fillStyle = "#fff";
+    } else {
+      let y = 0, n = 0;
+      for (const k of kind === 1 ? [9, 12, 6, 8, 12, 6, 9, 8] : [12, 9, 8, 6, 12, 9, 8, 6]) { const ch = k * h / 70; g.strokeRect(-2, y, w + 4, ch); for (let x = kind === 1 ? Math.random() * 30 : (n % 2) * 21; x < w; x += kind === 1 ? 26 + Math.random() * 34 : 42) { g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + ch); g.stroke(); } y += ch; n++; }
+    }
+    g.globalAlpha = 1;
+  }
+  function worn(g, w, h) {               // age: patches rubbed away, a crack, a fallen stone
+    g.fillStyle = "#000"; for (let i = 0; i < 5; i++) { g.beginPath(); g.ellipse(Math.random() * w, Math.random() * h, 3 + Math.random() * 9, 2 + Math.random() * 6, Math.random() * 3, 0, 7); g.fill(); }
+    g.fillStyle = "#fff";
+    if (Math.random() < .6) { g.globalAlpha = .7; g.lineWidth = 1; g.beginPath(); let x = Math.random() * w, y = 0; g.moveTo(x, y); while (y < h * (.4 + Math.random() * .6)) { x += (Math.random() - .5) * 16; y += 6 + Math.random() * 12; g.lineTo(x, y); } g.stroke(); g.lineWidth = 1.6; g.globalAlpha = 1; }
+  }
+  function rock(g, w, h) {               // living rock: strata and fractures
+    g.globalAlpha = .6;
+    for (let i = 0, y = 6; i < 7; i++, y += 10 + Math.random() * 14) { g.beginPath(); let yy = y; for (let x = -4; x <= w + 4; x += 10) { yy += (Math.random() - .5) * 7; g.lineTo(x, yy); } g.stroke(); }
+    for (let i = 0; i < 5; i++) { g.beginPath(); let x = Math.random() * w, y = Math.random() * h; g.moveTo(x, y); for (let k = 0; k < 4; k++) { x += (Math.random() - .5) * 26; y += 8 + Math.random() * 16; g.lineTo(x, y); } g.stroke(); }
     g.globalAlpha = 1;
   }
   const EMBLEM = [
@@ -569,6 +586,8 @@ const infernus = (function () {
     (g) => { for (let r = 0; r < 4; r++) for (let i = 0; i <= r; i++) { g.beginPath(); g.arc(64 + (i - r / 2) * 14, 40 + r * 13, 3.2, 0, 7); g.fill(); } },
     (g) => { g.beginPath(); g.moveTo(34, 50); for (const [x, y] of [[48, 66], [56, 52], [70, 74], [80, 56], [94, 70]]) g.lineTo(x, y); g.stroke(); g.beginPath(); g.moveTo(56, 52); g.lineTo(52, 36); g.moveTo(70, 74); g.lineTo(76, 90); g.stroke(); }];
   const WALL = CIRCLES.map((_, L) => tex(128, 128, (g, w, h) => { masonry(g, w, h); g.fillStyle = "#000"; g.beginPath(); g.arc(64, 62, 34, 0, 7); g.fill(); g.stroke(); g.fillStyle = "#fff"; EMBLEM[L](g); }));
+  const WALLV = WALL.map((emb) => ({ emb, plain: [0, 1, 2, 1].map((k) => tex(128, 128, (g, w, h) => { masonry(g, w, h, k); worn(g, w, h); })) }));
+  const ROCK = [0, 1, 2, 3].map(() => tex(128, 128, rock));
   const PAR = tex(128, 128, (g, w) => { g.fillRect(0, 0, w, 10); g.globalAlpha = .5; for (let x = 0; x < w; x += 16) g.strokeRect(x, 14, 16, 120); });
   const plate = (name, sub, crown) => tex(128, 128, (g, w, h) => {
     masonry(g, w, h); g.fillStyle = "#000"; g.fillRect(6, 36, 116, 60); g.strokeRect(6, 36, 116, 60); g.strokeRect(10, 40, 108, 52); g.fillStyle = "#fff";
@@ -625,8 +644,8 @@ const infernus = (function () {
      set plan taken from Dante's buildings; every other chamber is put together from
      parts, and never the same way as the one before it. */
   const WALLH = 2.4, DEEP = -6, STEP = .32, EYE = .75;
-  const HH = new Float32Array(MW * MH).fill(WALLH), SR = new Float32Array(MW * MH), SD = new Uint8Array(MW * MH), FT = new Uint8Array(MW * MH), CH = new Float32Array(MW * MH).fill(99), CT = new Uint8Array(MW * MH);
-  const gr = (c, fx, fy) => { const d = SD[c]; return d ? HH[c] + SR[c] * (d === 1 ? fx : d === 2 ? fy : d === 3 ? 1 - fx : 1 - fy) : HH[c]; };
+  const HH = new Float32Array(MW * MH).fill(WALLH), SR = new Float32Array(MW * MH), SD = new Uint8Array(MW * MH), FT = new Uint8Array(MW * MH), CH = new Float32Array(MW * MH).fill(99), CT = new Uint8Array(MW * MH), DG = new Uint8Array(MW * MH);
+  const gr = (c, fx, fy) => { const k = DG[c]; if (k && (k === 1 ? fx + fy < 1 : k === 2 ? fy < fx : k === 3 ? fx + fy > 1 : fy > fx)) return 50; const d = SD[c]; return d ? HH[c] + SR[c] * (d === 1 ? fx : d === 2 ? fy : d === 3 ? 1 - fx : 1 - fy) : HH[c]; };
   const chunks = [], sprites = [], pending = {}, made = {}, fixed = {}, secretAt = new Map();
   let total = 0;
   for (const st of ["vas", "index"]) REGISTRUM[st].records.forEach((r, n) => { const fm = FORM[r.kind]; if (!fm) return; (pending[fm[1]] ||= []).push({ form: fm[0], store: st, r, n }); total++; });
@@ -643,7 +662,7 @@ const infernus = (function () {
     const ch = { id, circle, kind, seed, dry, doors: [null, null, null, null], fall: null, sig: "", land: null };
     chunks.push(ch);
     const wt = WALL[Math.min(8, Math.max(0, circle))];
-    for (let ly = 0; ly < S; ly++) for (let lx = 0; lx < S; lx++) { const c = at(ox + lx, ly); HH[c] = WALLH; M[c] = 1; SD[c] = 0; SR[c] = 0; FT[c] = 0; CH[c] = 99; CT[c] = 0; T[c] = wt; TS[c] = 0; SP[c] = -1; }
+    for (let ly = 0; ly < S; ly++) for (let lx = 0; lx < S; lx++) { const c = at(ox + lx, ly); HH[c] = WALLH; M[c] = 1; SD[c] = 0; SR[c] = 0; FT[c] = 0; CH[c] = 99; CT[c] = 0; DG[c] = 0; T[c] = wt; TS[c] = 0; SP[c] = -1; }
     // everything below is drawn as if you came in by the north door, then turned to the door you did come by
     const R = (x, y) => { for (let i = 0; i < q; i++) { const t = x; x = 15 - y; y = t; } return at(ox + x, y); };
     const put = (x, y, h, ft, sd, sr) => { const c = R(x, y); HH[c] = h; M[c] = h === WALLH ? 1 : 0; FT[c] = ft || 0; SD[c] = sd == null ? 0 : (sd + q) % 4 + 1; SR[c] = sr || 0; return c; };
@@ -739,13 +758,31 @@ const infernus = (function () {
     const tall = ch.sig.includes("tower"), set = ch.sig.startsWith("set");
     const wh = ch.wh = kind !== "room" ? 3.6 : set ? SWH[circle] : tall ? 3.6 : [2.4, 2.4, 3.6, 4.8][Math.floor(rnd() * 4)];
     const roof = ch.roof = kind === "gate" ? 1 : kind === "exit" ? 2 : opt.fallen || opt.high || tall ? 0 : set ? [0, 1, 2, 2, 0, 0, 2, 0, 2][circle] : [0, 2, 2, 1, 3, 2, 0, 1, 3, 2][Math.floor(rnd() * 10)];
+    if (kind === "room") {                       // not every chamber is square: caverns are broken and many-sided, some halls have their corners cut
+      const lane = (lx, ly) => lx === 7 || lx === 8 || ly === 7 || ly === 8, keep = new Set(spots.map((p) => R(p[0], p[1])));
+      const plain = (c) => M[c] === 0 && !SD[c] && HH[c] === 0 && !keep.has(c);
+      const reach = () => { const seen = new Set([R(7, 4)]), st = [R(7, 4)]; while (st.length) { const c = st.pop(), x = c % MW, y = c / MW | 0; for (let d = 0; d < 4; d++) { const nx = x + DX[d], ny = y + DY[d]; if (nx < ox || nx >= ox + S || ny < 0 || ny >= S) continue; const n = at(nx, ny); if (seen.has(n) || M[n] === 1) continue; const hn = HH[n] <= DEEP && lane(nx - ox, ny) ? 0 : HH[n] + SR[n], hc = HH[c] <= DEEP && lane(x - ox, y) ? 0 : HH[c]; if (hn - hc > .95 || hn <= DEEP) continue; seen.add(n); st.push(n); } } return seen; };
+      if (roof === 2) {
+        const before = reach(), bumps = [];
+        for (let ly = 1; ly < 15; ly++) for (let lx = 1; lx < 15; lx++) { const c = at(ox + lx, ly); if (lane(lx, ly) || !plain(c) || rnd() > .2) continue; if ([0, 1, 2, 3].some((d) => M[at(ox + lx + DX[d], ly + DY[d])] === 1)) bumps.push(c); }
+        for (const c of bumps) M[c] = 1;
+        const now = reach(); let ok = true; for (const c of before) if (M[c] !== 1 && !now.has(c)) { ok = false; break; }
+        if (!ok) for (const c of bumps) M[c] = 0; else for (const c of bumps) HH[c] = WALLH;
+      }
+      if (roof === 2 || rnd() < .5) for (let ly = 1; ly < 15; ly++) for (let lx = 1; lx < 15; lx++) {
+        const c = at(ox + lx, ly); if (lane(lx, ly) || !plain(c)) continue;
+        const w = [0, 1, 2, 3].map((d) => M[at(ox + lx + DX[d], ly + DY[d])] === 1);   // E S W N
+        DG[c] = w[3] && w[2] && !w[0] && !w[1] ? 1 : w[3] && w[0] && !w[2] && !w[1] ? 2 : w[1] && w[0] && !w[2] && !w[3] ? 3 : w[1] && w[2] && !w[0] && !w[3] ? 4 : 0;
+      }
+    }
     for (let ly = 0; ly < S; ly++) for (let lx = 0; lx < S; lx++) {
-      const c = at(ox + lx, ly);
-      if (M[c] === 1) { HH[c] = wh; continue; }
+      const c = at(ox + lx, ly), hsh = Math.imul(c, 2654435761) >>> 0;
+      if (T[c] === wt) T[c] = roof === 2 && kind === "room" ? ROCK[hsh >>> 8 & 3] : hsh % 6 === 0 ? wt : WALLV[Math.min(8, Math.max(0, circle))].plain[hsh >>> 8 & 3];
+      if (M[c] === 1) { HH[c] = wh - (kind === "room" ? (hsh >>> 16 & 255) / 255 * .35 : 0); continue; }   // the wall heads are broken, none quite level
       if (roof) { CT[c] = roof; CH[c] = roof === 1 ? wh + .6 : roof === 3 ? wh + .4 : wh + .7 + (Math.imul(c, 2654435761) >>> 0) / 4294967296 * 1.3; }
     }
     if (ch.spire) for (const c of ch.spire) HH[c] = 7;
-    if (roof) for (let cd = 0; cd < 4; cd++) for (const [x, y] of armCells(cd, 6)) { const c = R(x, y); if (M[c] !== 1) { CT[c] = 1; CH[c] = HH[c] + SR[c] + 1.9; } }   // the passage through the wall is low
+    if (roof) for (let cd = 0; cd < 4; cd++) if (ch.doors[A(cd)] || (cd === 3 && entry >= 0)) for (const [x, y] of armCells(cd, 6)) { const c = R(x, y); if (M[c] !== 1) { CT[c] = 1; CH[c] = HH[c] + SR[c] + 1.9; } }   // the passage through the wall is low
     ch.land = R(7, 4);
     const list = pending[circle]; made[circle] = (made[circle] || 0) + 1;
     while (list && list.length && spots.length && (kind === "gate" || opt.vault || made[circle] > 2 || rnd() < .7)) {
@@ -790,6 +827,7 @@ const infernus = (function () {
   let W = 480, H = 270, img, buf, done;
   const P = { x: 8, y: 5, a: -Math.PI / 2, f: 0, vz: 0, s: 1, sT: 1, p: 0 };
   const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5], PL = .72;
+  const SNAP = 2;
   const FOG = 22, FOGK = .06, mist = (v, d) => { const e = Math.exp(-d * FOGK); return v * Math.min(1, 5 / (1 + .03 * d * d)) * e + FOG * (1 - e); };
   let target = null, hollow = null, reading = false, on = false, last = 0, cur = 0, grounded = true;
   const keys = new Set();
@@ -850,6 +888,19 @@ const infernus = (function () {
     }
     draw(t); hud();
   }
+  // one upright face in one screen column. Its edges are snapped to a coarse grid, as on the first PlayStation, so they shiver as you move.
+  function face(x, d, lo, up, zr, n, u, sh, hor, K, posts) {
+    const dd = Math.max(d, .03), top = Math.round((hor - (up - zr) * K / dd) / SNAP) * SNAP, bot = Math.round((hor - (lo - zr) * K / dd) / SNAP) * SNAP, tx = TEX[T[n]];
+    const e = Math.exp(-dd * FOGK), haze = FOG * (1 - e), fall = Math.min(1, 5 / (1 + .03 * dd * dd)) * sh * 255 * e, edge = Math.min(1, 8 / (1 + .02 * dd * dd)) * 255 * e;
+    const tu = Math.min(tx.w - 1, Math.floor((TS[n] + u) / tx.span * tx.w)), ya = Math.max(0, top), yz = Math.min(H - 1, bot), uw = Math.max(.015, dd * .005), post = posts && tx.span === 1 && (u < uw || u > 1 - uw), q = dd / K;
+    for (let y = ya; y <= yz; y++) {
+      const j = y * W + x; if (done[j]) continue; done[j] = 1;
+      let v = (zr - (y - hor) * q - lo) / WALLH; v -= Math.floor(v);
+      const worn = (Math.imul(n * 131 + (y >> 2), 2654435761) >>> 0 & 15) ? 1 : .45;     // here and there the line has worn thin
+      buf[j] = haze + (y <= ya + 1 || y === yz ? edge * worn : post ? edge * .45 * worn : tx.d[Math.min(tx.h - 1, Math.floor((1 - v) * tx.h)) * tx.w + tu] / 255 * fall);
+    }
+    return top;
+  }
   function draw(t) {
     const hor = (H >> 1) + Math.round(P.p * H), K = H * .95, dx = Math.cos(P.a), dy = Math.sin(P.a), px = -dy * PL, py = dx * PL, fr = Math.floor(t / 170), mid = W >> 1;
     buf.fill(0); done.fill(0); target = null; hollow = null;
@@ -859,9 +910,10 @@ const infernus = (function () {
       let mx = pcx, my = pcy, ox = 0, oy = 0, zr = P.f + EYE * P.s, dIn = 0, hin = h0;
       let sdx = rx < 0 ? (P.x - mx) * ddx : (mx + 1 - P.x) * ddx, sdy = ry < 0 ? (P.y - my) * ddy : (my + 1 - P.y) * ddy;
       for (let i = 0; i < 64; i++) {
-        const c = my * MW + mx, side = sdx < sdy ? 0 : 1, dOut = side ? sdy : sdx;
+        const c = my * MW + mx, side = sdx < sdy ? 0 : 1; let dOut = side ? sdy : sdx, cut = 0;
+        if (DG[c]) { const ax = P.x + ox - mx, ay = P.y + oy - my, den = DG[c] & 1 ? rx + ry : rx - ry, tt = DG[c] & 1 ? (1 - ax - ay) / den : (ay - ax) / den; if (tt > dIn + 1e-4 && tt < dOut - 1e-4) cut = dOut = tt; }
         let ex = P.x + ox + dOut * rx, ey = P.y + oy + dOut * ry;
-        const hout = gr(c, Math.min(1, Math.max(0, ex - mx)), Math.min(1, Math.max(0, ey - my)));
+        const hout = cut ? HH[c] : gr(c, Math.min(1, Math.max(0, ex - mx)), Math.min(1, Math.max(0, ey - my)));
         if (SP[c] >= 0) {                          // a record standing in this cell
           const s = sprites[SP[c]], qx = s.x - P.x - ox, qy = s.y - P.y - oy, dep = qx * dx + qy * dy;
           if (dep > .15) {
@@ -884,8 +936,9 @@ const infernus = (function () {
               if (ft === 1) continue;
               const den = y - hor + K * m; if (den < .001) continue;
               const d = num / den, wx = P.x + ox + d * rx, wy = P.y + oy + d * ry, u = wx - Math.floor(wx), w = wy - Math.floor(wy);
-              const lw = Math.max(.035, d * .009);
-              buf[j] = mist((ft === 2 ? ((u + w) * 3 % 1 < lw * 3 ? .55 : 0) : u < lw || w < lw ? .7 : 0) * 255, d);
+              const lw = Math.max(.035, d * .009), u2 = u + .03 * Math.sin(wy * 4.1 + wx * .7), w2 = w + .03 * Math.sin(wx * 3.7 + 1.3), hh = Math.imul(Math.floor(wx * 3) * 73856093 ^ Math.floor(wy * 3) * 19349663, 2654435761) >>> 0;
+              const crack = (Math.imul(c, 40503) & 7) === 0 && Math.abs(u - w * .7 - .12 - .05 * Math.sin(w * 9)) < lw * .8;      // the lines waver, are rubbed out in places, and some flags are cracked
+              buf[j] = mist((ft === 2 ? ((u + w + .04 * Math.sin(wx * 5)) * 3 % 1 < lw * 3 ? .55 : 0) : (hh & 15) === 0 ? 0 : u2 < lw || u2 > 1 || w2 < lw || w2 > 1 ? .7 : crack ? .45 : 0) * 255, d);
             }
           }
         }
@@ -899,6 +952,7 @@ const infernus = (function () {
             buf[j] = mist((ct === 1 ? (u < lw || w < lw ? .6 : 0) : ct === 3 ? (w * 2 % 1 < .16 ? .75 : u < lw ? .35 : 0) : k - Math.floor(k) < lw * 1.6 ? .5 : 0) * 255, d);
           }
         }
+        if (cut) { const wtop = chunks[mx / S | 0].wh; face(x, cut, hout, hc < 90 ? Math.max(hc, wtop) : wtop, zr, c, ex - mx, .9, hor, K, 0); break; }   // a wall set aslant
         let d; if (!side) { sdx += ddx; d = rx > 0 ? 0 : 2; } else { sdy += ddy; d = ry > 0 ? 1 : 3; }
         const pd = portal.get(c * 4 + d); let hb = hout, hcb = hc < 90 ? hc + (pd ? pd[2] : 0) : 99;
         mx += DX[d]; my += DY[d]; if (pd) { mx += pd[0]; my += pd[1]; ox += pd[0]; oy += pd[1]; ex += pd[0]; ey += pd[1]; zr += pd[2]; hb += pd[2]; }
@@ -916,16 +970,9 @@ const infernus = (function () {
         }
         const hu = M[n] === 1 && hcb < 90 ? Math.max(hn, hcb) : hn;   // under a roof, a wall runs up to it
         if (hu > hb + .01) {                       // a face rising in front of you: a step, a ledge, a wall
-          const dd = Math.max(dOut, .03), top = hor - (hu - zr) * K / dd, bot = hor - (hb - zr) * K / dd, tx = TEX[T[n]];
           let u = side ? ex : ey; u -= Math.floor(u); if ((!side && rx < 0) || (side && ry > 0)) u = 1 - u;
-          if (x === mid && dd < 1.7 && secretAt.has(n)) hollow = secretAt.get(n);
-          const e = Math.exp(-dd * FOGK), haze = FOG * (1 - e), fall = Math.min(1, 5 / (1 + .03 * dd * dd)) * (side ? .8 : 1) * 255 * e, edge = Math.min(1, 8 / (1 + .02 * dd * dd)) * 255 * e, tu = Math.min(tx.w - 1, Math.floor((TS[n] + u) / tx.span * tx.w)), ya = Math.max(0, Math.ceil(top)), yz = Math.min(H - 1, Math.floor(bot)), uw = Math.max(.015, dd * .005), post = M[n] === 1 && (u < uw || u > 1 - uw);
-          for (let y = ya; y <= Math.min(H - 1, bot); y++) {
-            const j = y * W + x; if (done[j]) continue; done[j] = 1;
-            let v = (zr - (y - hor) * dd / K - hb) / WALLH; v -= Math.floor(v);
-            buf[j] = haze + (y <= ya + 1 || y === yz || post ? edge : tx.d[Math.min(tx.h - 1, Math.floor((1 - v) * tx.h)) * tx.w + tu] / 255 * fall);
-          }
-          if (top <= 0) break;
+          if (x === mid && dOut < 1.7 && secretAt.has(n)) hollow = secretAt.get(n);
+          if (face(x, dOut, hb, hu, zr, n, u, side ? .8 : 1, hor, K, M[n] === 1) <= 0) break;
         }
         dIn = dOut; hin = hn;
       }

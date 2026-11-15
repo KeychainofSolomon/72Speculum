@@ -19,6 +19,8 @@ The mirror (`speculum`) of [Annulus](https://github.com/KeychainofSolomon/Annulu
   - **Size:** some doors make you larger or smaller, so a wall becomes a step or a step a wall. Some ways are only painted on the wall.
   - **Returning:** ways that lead back prefer the set chambers, so those become the places everything folds back to.
   - **Rivers, as Dante places them:** Acheron past the Gate and before Limbo; the marsh of Styx in the fifth circle; Phlegethon, the river of blood, with its ford in the seventh; the ice of Cocytus in the ninth; the fair stream round Limbo's castle; and the unnamed little stream by the way out. Each named water carries Dante's own name for it on the wall. Water is drawn nowhere else. Not shown yet: Charon and his boat, Phlegyas's crossing to Dis, and Phlegethon's waterfall into the eighth circle.
+  - **Look:** clean white line on black, with wall and floor patterns visible at a distance and a thin fog beyond. Walls vary from cell to cell (coursed stone, uneven ashlar, rubble, living rock in caverns) and are worn: rubbed patches, cracks, broken wall heads, wavering floor lines. Edges are snapped to a coarse grid, as on the first PlayStation, so they shiver as you move.
+  - **Shapes:** caverns are broken and many-sided, with slanted walls; some built halls have their corners cut.
   - **Not shown in this build:** Purgatory's entries (the suspected and the proscribed). The plain register still lists them.
 - **Read plainly:** the same records as a plain register.
 
