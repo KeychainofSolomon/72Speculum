@@ -1237,7 +1237,7 @@ const infernus = (function () {
       const h = zr - (y - hor) * q, v = (h - base) / WALLH; let p = 0;
       if (corner && h < corner) { buf[j] = haze + edge * .7; continue; }
       if (tx && v >= 0 && v < 1) p = tx.d[Math.min(tx.h - 1, Math.floor((1 - v) * tx.h)) * tx.w + tu];
-      TC = 0; buf[j] = haze + (p ? (p === 1 ? 0 : p / 255) : rl ? relief(rl[0] + rl[1] * h, rl[2] + rl[3] * h, lw * 2.2) : stone(st, al, wx, wy, h, lw)) * fall; tint[j] = TC;
+      TC = 0; buf[j] = haze + (p > 1 ? p / 255 : rl ? relief(rl[0] + rl[1] * h, rl[2] + rl[3] * h, lw * 2.2) : stone(st, al, wx, wy, h, lw) * (p ? .5 : 1)) * fall; tint[j] = TC;
     }
     return top;
   }
@@ -1256,7 +1256,7 @@ const infernus = (function () {
   function slabFace(x, d, lo, up, zr, n, s, sl, sh, hor, K, wx, wy, t) {
     const dd = Math.max(d, .03), top = Math.round((hor - (up - zr) * K / dd) / SNAP) * SNAP, bot = Math.round((hor - (lo - zr) * K / dd) / SNAP) * SNAP;
     const e = Math.exp(-dd * FOGK), haze = FOG * (1 - e), fall = Math.min(1, 6 / (1 + .012 * dd * dd)) * sh * 255 * e * FD, edge = Math.min(1, 8 / (1 + .01 * dd * dd)) * 255 * e * FD;
-    const t0 = sl.sv === 3 ? null : TEX[SLABT[sl.sv]], tx = t0 && t0.lv[Math.max(0, Math.min(3, Math.round(Math.log2(t0.lv[0].h / WALLH * dd / K))))], ut = (s + 1) / 2 - sl.f;
+    const t0 = sl.sv === 1 || sl.sv === 2 || !MIP ? (sl.sv === 3 ? null : TEX[SLABT[sl.sv]]) : null, tx = t0 && t0.lv[Math.max(0, Math.min(3, Math.round(Math.log2(t0.lv[0].h / WALLH * dd / K))))], ut = (s + 1) / 2 - sl.f;
     const tu = tx ? Math.max(0, Math.min(tx.w - 1, Math.floor(ut * tx.w))) : 0, ya = Math.max(0, top), yz = Math.min(H - 1, bot), q = dd / K, lw = Math.max(.012, dd * .0045), st = ST[n], amp = sl.wob, a0 = (sl.d & 1 ? wx : wy) - sl.f * 2;
     for (let y = ya; y <= yz; y++) {
       const j = y * W + x; if (done[j]) continue; done[j] = 1;
@@ -1265,7 +1265,10 @@ const infernus = (function () {
       if (amp) { al += amp * .1 * Math.sin(h * 6 + t * .005); h += amp * .08 * Math.sin(s * 7 + t * .006); }
       const v = (h - HH[n]) / WALLH; let p = 0;
       if (tx && v >= 0 && v < 1) p = tx.d[Math.min(tx.h - 1, Math.floor((1 - v) * tx.h)) * tx.w + tu];
-      TC = 0; buf[j] = haze + (p ? (p === 1 ? 0 : p / 255) : stone(st, al, wx, wy, h, lw * (1 + amp))) * fall; tint[j] = TC;
+      TC = 0; let val;
+      if (p && MIP && sl.sv === 1) { const bk = hash2(Math.floor(ut * 40), Math.floor(v * 4)) % 5; val = p === 1 ? .2 + .05 * bk : .16; TC = p === 1 ? [pack(120, 40, 30), pack(60, 80, 50), pack(110, 80, 40), pack(50, 60, 100), pack(130, 100, 60)][bk] : pack(90, 55, 30); }      // book spines between dark wood
+      else if (p > 1) val = p / 255; else val = stone(st, al, wx, wy, h, lw * (1 + amp)) * (p ? .55 : 1);
+      buf[j] = haze + val * fall; tint[j] = TC;
     }
   }
   // falling water down the face under a ledge
@@ -1343,7 +1346,7 @@ const infernus = (function () {
               if (RV[c]) {                          // water with a bank that is a curve; in a made place, a kerb along it
                 const sd = wfAt(c, u, w);
                 if (sd < 0) { const dep = Math.min(.9, -sd * 1.4); const fw = wfFl(c, u, w); buf[j] = mist(Math.max(aqua(c, wx, wy, fw, t) * (dep >= .5 ? .8 : 1.15), water(wx, wy, fw, t, lw), sd > -lw * 1.4 ? .9 : 0) * 255, d); tint[j] = sd > -lw * 1.4 ? 0 : TC; continue; }
-                if (chunks[mx / S | 0].curb && sd < .2) { buf[j] = mist((sd > .2 - lw * 1.4 || sd < lw * 1.4 || (wx + wy) * 2 % 1 < lw * 2 ? .8 : 0) * 255, d); continue; }
+                if (chunks[mx / S | 0].curb && sd < .2) { const pv = paving(ST[c], wx * 2, wy * 2, lw * 2) * 1.35, ln = sd < lw * .8; buf[j] = mist((ln ? .8 : pv) * 255, d); tint[j] = ln ? 0 : TC; continue; }
               }
               if (ST[c] === 3 && ft === 0 && !MIP) { const k = (Math.sin(wx * .9) + Math.cos(wy * .8 + wx * .4)) * .8; buf[j] = mist((k - Math.floor(k) < lw * 1.2 ? .28 : 0) * 255, d); continue; }   // a cavern floor is bare, with a faint line or two
               if (wet) { buf[j] = mist(Math.max(aqua(c, wx, wy, FL[c], t) * (wet >= .5 ? .8 : 1.15), water(wx, wy, FL[c], t, lw)) * 255, d); tint[j] = TC; continue; }   // water: its surface, and the bed dimmer the deeper it lies
@@ -1359,7 +1362,7 @@ const infernus = (function () {
             const j = y * W + x; if (done[j]) continue; done[j] = 1;
             const d = q / (hor - y), wx = P.x + ox + d * rx, wy = P.y + oy + d * ry, u = wx - Math.floor(wx), w = wy - Math.floor(wy);
             const lw = Math.max(.035, d * .009), k = (Math.sin(wx * .8) + Math.cos(wy * .7 + wx * .3)) * .7;
-            { TC = 0; const vv = AR[c] ? -1 : vault(ST[c], ct, wx, wy, lw); buf[j] = mist((vv >= 0 ? vv : AR[c] ? 0 : ct === 1 ? flags(wx, wy, lw) : ct === 3 ? (w * 2 % 1 < .14 ? .6 : 0) : k - Math.floor(k) < lw * 1.3 ? .28 : 0) * 255, d); tint[j] = TC; }
+            { TC = 0; const vv = AR[c] ? (MIP ? wallTex(10, 0, wx, wy, lw) * .6 : -1) : vault(ST[c], ct, wx, wy, lw); buf[j] = mist((vv >= 0 ? vv : AR[c] ? 0 : ct === 1 ? flags(wx, wy, lw) : ct === 3 ? (w * 2 % 1 < .14 ? .6 : 0) : k - Math.floor(k) < lw * 1.3 ? .28 : 0) * 255, d); tint[j] = TC; }
           }
         }
         if (cut) { const wtop = chunks[mx / S | 0].wh; face(x, cut, hout, hc < 90 ? Math.max(hc, wtop) : wtop, zr, c, ex - mx, .9, hor, K, hout, (ex - mx) * 1.414 + mx + my, ex, ey); break; }   // a wall set aslant
