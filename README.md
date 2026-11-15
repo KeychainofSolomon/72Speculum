@@ -71,6 +71,8 @@ Public domain (see `UNLICENSE`).
 
 - **People.** Each circle is peopled with flat figures that always face you, as Daggerfall shows its townsfolk, sorted by their looks: sages and poets in Limbo, courtesans, dancers, players and fools among the lustful, the fat and the servers of food among the gluttons, the rich and the clergy among the avaricious, the armed in Styx, the hooded in Dis, the seated on the burning sand, soothsayers, thieves, alchemists and the cloaked in Malebolge, the crowned in the ice. [O] The sorting is Annulus's own reading. They are scenery only and hold no record. The naked figures stand in every circle, men and women alike, since Dante's damned are naked; the second circle has men as well as women.
 
+- **Human scale, and three new figures.** Every figure is brought to one scale and stands at human height. Three figures are new, made from Daggerfall's by recolouring and drawing on them, each after Dante: a black winged devil with a hook in Malebolge (the Malebranche, Inf. XXI), a hypocrite in a gilded cloak of lead (XXIII), and a traitor fixed in the ice (XXXII).
+
 ## Credit
 
 The picture textures are from the Daggerfall Unity mod **"Daggerfall Dungeon Variety" by demifiend000**, which re-assigns Daggerfall's own dungeon textures (Bethesda Softworks) by kind of dungeon. They are embedded in `index.html`, brightened where very dark. They are not Annulus's work, and the UNLICENSE in this repo covers the code only, not these pictures.
