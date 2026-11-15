@@ -587,11 +587,16 @@ const infernus = (function () {
     const b = a / L + (id & 1) * .5 + (hash2(id, 3) & 255) / 255 * .3, bi = Math.floor(b);
     return (b - bi) * L < lw ? ((hash2(bi, id) & 15) === 0 ? .2 : .8) : 0;      // here and there a joint has worn away
   }
+  // a paved floor: flags of uneven length laid in rows, like the walls' bond and not a grid
+  function flags(wx, wy, lw) {
+    const r = wy / 1.5 + .04 * Math.sin(wx * 2.1), ri = Math.floor(r); if ((r - ri) * 1.5 < lw) return (hash2(Math.floor(wx * .7), ri) & 7) ? .42 : 0;
+    const b = wx / 2.2 + (hash2(ri, 11) & 255) / 255, bi = Math.floor(b); return (b - bi) * 2.2 < lw && (hash2(bi, ri) & 7) ? .42 : 0;
+  }
   // water seen from above: still water lies in short dashes; running water streaks along its course and the streaks move downstream
   function water(wx, wy, fl, t, lw) {
     if (fl === 255) { const k = wy * 3.5 + .3 * Math.sin(wx * 2.6), ki = Math.floor(k); return k - ki < lw * 2.2 && (hash2(Math.floor(wx * 1.3 + ki * .37), ki) & 3) === 0 ? .4 : 0; }
     const th = fl / 64 * 6.2832, cs = Math.cos(th), sn = Math.sin(th), b = cs * wx + sn * wy, la = (-sn * wx + cs * wy) * 4 + .25 * Math.sin(b * 1.7), li = Math.floor(la);
-    if (la - li > lw * 4 + .03) return 0; const m = b * .6 - t * .0009 + (hash2(li, 5) & 255) / 255; return m - Math.floor(m) < .5 ? .75 : 0;
+    if (la - li > lw * 2.5 + .012) return 0; const m = b * .6 - t * .0009 + (hash2(li, 5) & 255) / 255; return m - Math.floor(m) < .45 ? .5 : 0;
   }
 
   /* ---- the shapes of the condemned: four frames each, black bodies in white line ---- */
@@ -621,8 +626,10 @@ const infernus = (function () {
      set plan taken from Dante's buildings; every other chamber is put together from
      parts, and never the same way as the one before it. */
   const WALLH = 2.4, DEEP = -6, STEP = .32, EYE = .75;
-  const HH = new Float32Array(MW * MH).fill(WALLH), SR = new Float32Array(MW * MH), SD = new Uint8Array(MW * MH), FT = new Uint8Array(MW * MH), CH = new Float32Array(MW * MH).fill(99), CT = new Uint8Array(MW * MH), DG = new Uint8Array(MW * MH), ST = new Uint8Array(MW * MH), SB = new Float32Array(MW * MH), WL = new Float32Array(MW * MH).fill(-99), FL = new Uint8Array(MW * MH).fill(255);
-  const gr = (c, fx, fy) => { const k = DG[c]; if (k && (k === 1 ? fx + fy < 1 : k === 2 ? fy < fx : k === 3 ? fx + fy > 1 : fy > fx)) return 50; const d = SD[c]; return d ? HH[c] + SR[c] * (d === 1 ? fx : d === 2 ? fy : d === 3 ? 1 - fx : 1 - fy) : HH[c]; };
+  const HH = new Float32Array(MW * MH).fill(WALLH), SR = new Float32Array(MW * MH), SD = new Uint8Array(MW * MH), FT = new Uint8Array(MW * MH), CH = new Float32Array(MW * MH).fill(99), CT = new Uint8Array(MW * MH), DG = new Uint8Array(MW * MH), ST = new Uint8Array(MW * MH), SB = new Float32Array(MW * MH), RV = new Uint8Array(MW * MH), WL = new Float32Array(MW * MH).fill(-99), FL = new Uint8Array(MW * MH).fill(255);
+  const wfAt = (c, fx, fy) => { const x = c % MW, id = x / S | 0, f = chunks[id].wf; if (!f) return 9; const gx = Math.min(127.99, (x - id * S + fx) * 8), gy = Math.min(127.99, ((c / MW | 0) + fy) * 8), ix = gx | 0, iy = gy | 0, tx = gx - ix, ty = gy - iy, i = iy * 129 + ix; return (f.sd[i] * (1 - tx) + f.sd[i + 1] * tx) * (1 - ty) + (f.sd[i + 129] * (1 - tx) + f.sd[i + 130] * tx) * ty; };
+  const wfFl = (c, fx, fy) => { const x = c % MW, id = x / S | 0; return chunks[id].wf.fl[Math.round(((c / MW | 0) + fy) * 8) * 129 + Math.round((x - id * S + fx) * 8)]; };
+  const gr = (c, fx, fy) => { if (RV[c]) { const sd = wfAt(c, fx, fy); if (sd < 0) return HH[c] - Math.min(.9, -sd * 1.4); } const k = DG[c]; if (k && (k === 1 ? fx + fy < 1 : k === 2 ? fy < fx : k === 3 ? fx + fy > 1 : fy > fx)) return 50; const d = SD[c]; return d ? HH[c] + SR[c] * (d === 1 ? fx : d === 2 ? fy : d === 3 ? 1 - fx : 1 - fy) : HH[c]; };
   const chunks = [], sprites = [], pending = {}, made = {}, fixed = {}, secretAt = new Map();
   let total = 0;
   for (const st of ["vas", "index"]) REGISTRUM[st].records.forEach((r, n) => { const fm = FORM[r.kind]; if (!fm) return; (pending[fm[1]] ||= []).push({ form: fm[0], store: st, r, n }); total++; });
@@ -639,7 +646,7 @@ const infernus = (function () {
     const ch = { id, circle, kind, seed, dry, doors: [null, null, null, null], fall: null, sig: "", land: null };
     chunks.push(ch);
     const wt = 0;
-    for (let ly = 0; ly < S; ly++) for (let lx = 0; lx < S; lx++) { const c = at(ox + lx, ly); HH[c] = WALLH; M[c] = 1; SD[c] = 0; SR[c] = 0; FT[c] = 0; CH[c] = 99; CT[c] = 0; DG[c] = 0; WL[c] = -99; FL[c] = 255; SB[c] = 0; T[c] = wt; TS[c] = 0; SP[c] = -1; }
+    for (let ly = 0; ly < S; ly++) for (let lx = 0; lx < S; lx++) { const c = at(ox + lx, ly); HH[c] = WALLH; M[c] = 1; SD[c] = 0; SR[c] = 0; FT[c] = 0; CH[c] = 99; CT[c] = 0; DG[c] = 0; WL[c] = -99; FL[c] = 255; SB[c] = 0; RV[c] = 0; T[c] = wt; TS[c] = 0; SP[c] = -1; }
     // everything below is drawn as if you came in by the north door, then turned to the door you did come by
     const R = (x, y) => { for (let i = 0; i < q; i++) { const t = x; x = 15 - y; y = t; } return at(ox + x, y); };
     const put = (x, y, h, ft, sd, sr) => { const c = R(x, y); HH[c] = h; M[c] = h === WALLH ? 1 : 0; FT[c] = ft || 0; SD[c] = sd == null ? 0 : (sd + q) % 4 + 1; SR[c] = sr || 0; return c; };
@@ -745,39 +752,51 @@ const infernus = (function () {
        the sine of the distance run, with a wavelength about eleven times the width. Width goes
        as the square root of the flow and depth as its 0.4 power (Leopold and Maddock), so where
        it forks each branch is narrower and shallower. It is deepest along the middle. */
+    const built = ch.curb = roof === 1 || roof === 3 || kind === "gate";     // a made place: there the water runs in a kerbed channel
+    const Rf = (x, y) => { for (let i = 0; i < q; i++) { const t = x; x = 16 - y; y = t; } return [x, y]; };
+    const field = () => ch.wf || (ch.wf = { sd: new Float32Array(129 * 129).fill(9), fl: new Uint8Array(129 * 129).fill(255) });
+    const stamp = (x, y, r, fl) => {             // water of radius r about a point, written into the field
+      const f = field(), [ax, ay] = Rf(x, y);
+      for (let gy = Math.max(0, Math.floor((ay - r - 1) * 8)); gy <= Math.min(128, Math.ceil((ay + r + 1) * 8)); gy++) for (let gx = Math.max(0, Math.floor((ax - r - 1) * 8)); gx <= Math.min(128, Math.ceil((ax + r + 1) * 8)); gx++) { const d = Math.hypot(gx / 8 - ax, gy / 8 - ay) - r, i = gy * 129 + gx; if (d < f.sd[i]) { f.sd[i] = d; f.fl[i] = fl; } }
+    };
+    const undo = [];
+    const bed = (x, y, r, fl) => {               // the ground the water crosses is levelled for it
+      for (let iy = Math.floor(y - r - .6); iy <= Math.floor(y + r + .6); iy++) for (let ix = Math.floor(x - r - .6); ix <= Math.floor(x + r + .6); ix++) {
+        if (ix < 1 || iy < 1 || ix > 14 || iy > 14) continue; const c = R(ix, iy); if (RV[c] || HH[c] <= DEEP) continue;
+        if (SD[c]) { FT[c] = 3; FL[c] = fl; continue; }
+        undo.push([c, HH[c], M[c], FT[c], DG[c]]);
+        if (!keep.has(c)) { HH[c] = 0; M[c] = 0; FT[c] = 0; DG[c] = 0; }
+        if (HH[c] === 0) RV[c] = 1;
+      }
+    };
     if (kind === "gate" || (opt.river && kind === "room")) {
-      const Q = kind === "gate" ? 1 : opt.river, undo = [];
+      const Q = kind === "gate" ? 1 : opt.river;
       const outs = [0, 1, 2].filter((cd) => { const d = ch.doors[A(cd)]; return d && (d.kind === "down" || d.kind === "deep" || d.kind === "ledge"); }).slice(0, 2);
-      const wet = (x, y, depth, fl) => {
-        if (x < 1 || y < 1 || x > 14 || y > 14) return; const c = R(x, y); if (keep.has(c) || HH[c] <= DEEP) return;
-        undo.push([c, HH[c], M[c], FT[c], WL[c], FL[c]]);
-        if (SD[c]) { FT[c] = 3; FL[c] = fl; return; }
-        HH[c] = Math.min(HH[c], -depth); M[c] = 0; FT[c] = 0; WL[c] = -.06; FL[c] = fl;
-      };
       const course = (ax, ay, bx, by, q0, wind) => {
-        const w = Math.max(.9, 1.3 * Math.sqrt(q0)), dep = .3 + .45 * Math.pow(q0, .4), lam = 11 * w, ph = rnd() * 6.2832, r = w / 2 + .25;
+        const w = Math.max(.8, 1.2 * Math.sqrt(q0)), lam = 11 * w, ph = rnd() * 6.2832, r = w / 2;
         let x = ax, y = ay, s0 = 0;
-        for (let i = 0; i < 300; i++) {
-          const dist = Math.hypot(bx - x, by - y); if (dist < .35) break;
+        for (let i = 0; i < 400; i++) {
+          const dist = Math.hypot(bx - x, by - y); if (dist < .2) break;
           const th = Math.atan2(by - y, bx - x) + wind * 1.1 * Math.sin(6.2832 * s0 / lam + ph) * Math.min(1, dist / 3), fl = Math.round(th / 6.2832 * 64 + q * 16) & 63;
-          for (let iy = Math.floor(y - r); iy <= Math.floor(y + r); iy++) for (let ix = Math.floor(x - r); ix <= Math.floor(x + r); ix++) { const d = Math.hypot(ix + .5 - x, iy + .5 - y); if (d <= r + .25) wet(ix, iy, dep * (d < .6 ? 1 : .55), fl); }
-          x += Math.cos(th) * .2; y += Math.sin(th) * .2; s0 += .2;
+          bed(x, y, r, fl); stamp(x, y, r, fl);
+          x += Math.cos(th) * .15; y += Math.sin(th) * .15; s0 += .15;
         }
       };
       const run = (wind) => {
-        const src = kind === "gate" ? [9.5, 2] : [8, 2];
-        if (kind !== "gate") for (let k = 1; k <= 6; k++) for (const [x, y] of armCells(3, k)) wet(x, y, .2, flow(1));
-        if (!outs.length) { const p = Qm[Math.floor(rnd() * 4)](2, 2); course(src[0], src[1], p[0] + .5, p[1] + .5, Q, wind); for (let iy = p[1] - 1; iy <= p[1] + 2; iy++) for (let ix = p[0] - 1; ix <= p[0] + 2; ix++) wet(ix, iy, .9, 255); }
+        const src = kind === "gate" ? [9.5, 2] : [8, 2.2];
+        if (kind !== "gate") course(8, .2, src[0], src[1], Q, 0);       // in by the door you came by
+        if (!outs.length) { const p = Qm[Math.floor(rnd() * 4)](2, 2); course(src[0], src[1], p[0] + .5, p[1] + .5, Q, wind); for (const [dx, dy, r] of [[0, 0, 1.3], [.8, .4, .9], [-.5, .7, .8]]) { bed(p[0] + .5 + dx, p[1] + .5 + dy, r, 255); stamp(p[0] + .5 + dx, p[1] + .5 + dy, r, 255); } }
         outs.forEach((cd, i) => {
-          const qi = outs.length > 1 ? Q * (i ? .4 : .6) : Q, e = armCells(cd, 2);
-          course(src[0], src[1], (e[0][0] + e[1][0]) / 2 + .5, (e[0][1] + e[1][1]) / 2 + .5, qi, wind);
-          for (let k = 2; k <= 6; k++) for (const [x, y] of armCells(cd, k)) wet(x, y, .2, flow(cd));
+          const qi = outs.length > 1 ? Q * (i ? .4 : .6) : Q, e = armCells(cd, 2), bx = (e[0][0] + e[1][0]) / 2 + .5, by = (e[0][1] + e[1][1]) / 2 + .5;
+          if (wind) course(src[0], src[1], bx, by, qi, 1); else { course(src[0], src[1], 8, 8, qi, 0); course(8, 8, bx, by, qi, 0); }
+          if (DROP[ch.doors[A(cd)].kind]) { for (let k = 2; k <= 6; k++) for (const [x, y] of armCells(cd, k)) { const c = R(x, y); FT[c] = 3; FL[c] = flow(cd); } }
+          else course(bx, by, 8 + DX[cd] * 7.8, 8 + DY[cd] * 7.8, qi, 0);
           ch.doors[A(cd)].river = qi;
         });
       };
       const sound = () => { const seen = reach(); return [...keep].every((c) => [1, -1, MW, -MW].some((o) => seen.has(c + o))) && [0, 1, 2, 3].every((cd) => !(ch.doors[A(cd)] || (cd === 3 && entry >= 0)) || armCells(cd, 6).some(([x, y]) => seen.has(R(x, y)))); };
-      run(ch.sig.startsWith("set") ? 0 : 1);
-      if (!sound()) { for (const u of undo.reverse()) { HH[u[0]] = u[1]; M[u[0]] = u[2]; FT[u[0]] = u[3]; WL[u[0]] = u[4]; FL[u[0]] = u[5]; } undo.length = 0; run(0); }
+      run(built || ch.sig.startsWith("set") ? 0 : 1);
+      if (!sound()) { for (const u of undo.reverse()) { HH[u[0]] = u[1]; M[u[0]] = u[2]; FT[u[0]] = u[3]; DG[u[0]] = u[4]; RV[u[0]] = 0; } undo.length = 0; ch.wf.sd.fill(9); run(0); }
     }
     for (let again = true; again;) {               // water finds its level: any lower ground beside it fills
       again = false;
@@ -785,16 +804,23 @@ const infernus = (function () {
         for (let d = 0; d < 4; d++) { const n = at(ox + lx + DX[d], ly + DY[d]); if (M[n] !== 1 && WL[n] < -90 && HH[n] < WL[c] - .01 && HH[n] > DEEP && !SD[n] && lx + DX[d] > 0 && lx + DX[d] < 15 && ly + DY[d] > 0 && ly + DY[d] < 15) { WL[n] = WL[c]; FL[n] = 255; again = true; } } }
     }
     if (kind === "room") {                       // not every chamber is square: caverns are broken and many-sided, some halls have their corners cut
-      const plain = (c) => M[c] === 0 && !SD[c] && HH[c] === 0 && !keep.has(c);
+      const plain = (c) => M[c] === 0 && !SD[c] && HH[c] === 0 && !keep.has(c) && !RV[c];
       if (roof === 2) {
         const before = reach(), bumps = [];
         for (let ly = 1; ly < 15; ly++) for (let lx = 1; lx < 15; lx++) { const c = at(ox + lx, ly); if (lane(lx, ly) || !plain(c) || rnd() > .2) continue; if ([0, 1, 2, 3].some((d) => M[at(ox + lx + DX[d], ly + DY[d])] === 1)) bumps.push(c); }
         for (const c of bumps) M[c] = 1;
         const now = reach(); let ok = true; for (const c of before) if (M[c] !== 1 && !now.has(c)) { ok = false; break; }
         if (!ok) for (const c of bumps) M[c] = 0; else for (const c of bumps) HH[c] = WALLH;
-        if (!opt.river) for (let n = 1 + Math.floor(rnd() * 2); n--;) {      // a still pond or two on a cavern floor
-          const lx = 2 + Math.floor(rnd() * 12), ly = 2 + Math.floor(rnd() * 12);
-          for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1], [1, 1]]) { const c = at(ox + lx + dx, ly + dy); if (!lane(lx + dx, ly + dy) && plain(c)) { HH[c] = -.3 - .5 * rnd(); WL[c] = -.08; FL[c] = 255; } }
+        if (!opt.river) for (let n = 1 + Math.floor(rnd() * 2); n--;) {      // a still pond or two on a cavern floor, of no regular shape
+          const lx = 3 + Math.floor(rnd() * 10), ly = 3 + Math.floor(rnd() * 10); let free = true;
+          for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const c = at(ox + lx + dx, ly + dy); if (lane(lx + dx, ly + dy) || !plain(c)) free = false; }
+          if (!free) continue;
+          const f = field();
+          for (const [dx, dy, r] of [[0, 0, .9 + rnd() * .5], [rnd() - .5, rnd() - .5, .7 + rnd() * .4], [rnd() * 1.4 - .7, rnd() * 1.4 - .7, .5 + rnd() * .4]]) {
+            const ax = lx + .5 + dx, ay = ly + .5 + dy;
+            for (let gy = Math.floor((ay - r - 1) * 8); gy <= Math.ceil((ay + r + 1) * 8); gy++) for (let gx = Math.floor((ax - r - 1) * 8); gx <= Math.ceil((ax + r + 1) * 8); gx++) { const d = Math.hypot(gx / 8 - ax, gy / 8 - ay) - r, i = gy * 129 + gx; if (d < f.sd[i]) { f.sd[i] = d; f.fl[i] = 255; } }
+          }
+          for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) RV[at(ox + lx + dx, ly + dy)] = 1;
         }
       }
       if (roof === 2 || rnd() < .5) for (let ly = 1; ly < 15; ly++) for (let lx = 1; lx < 15; lx++) {
@@ -903,7 +929,7 @@ const infernus = (function () {
       P.s += (P.sT - P.s) * Math.min(1, dt * 1.2);
       const v = 3.1 * dt * Math.pow(P.s, .6) * (swim ? .5 : 1), ca = Math.cos(P.a), sa = Math.sin(P.a);
       move((ca * f - sa * s) * v, (sa * f + ca * s) * v);
-      const cx = Math.floor(P.x), cy = Math.floor(P.y), wl = WL[at(cx, cy)]; let gh = gr(at(cx, cy), P.x - cx, P.y - cy);
+      const cx = Math.floor(P.x), cy = Math.floor(P.y), c0 = at(cx, cy), wl = RV[c0] && wfAt(c0, P.x - cx, P.y - cy) < 0 ? HH[c0] - .03 : WL[c0]; let gh = gr(at(cx, cy), P.x - cx, P.y - cy);
       swim = wl > -90 && wl - gh >= .5 && P.f <= wl; if (swim) gh = wl - .5 + .03 * Math.sin(t / 320);      // where it is deep enough you float and swim, slowly
       if (grounded && !swim && keys.has("Space")) { P.vz = 3.1 * Math.sqrt(P.s); grounded = false; }
       if (grounded && P.f - gh < .36 * P.s) P.f = gh;                       // keep to the ground down ramps and small steps
@@ -935,7 +961,7 @@ const infernus = (function () {
   function draw(t) {
     const hor = (H >> 1) + Math.round(P.p * H), K = H * .95, dx = Math.cos(P.a), dy = Math.sin(P.a), px = -dy * PL, py = dx * PL, fr = Math.floor(t / 170), mid = W >> 1;
     buf.fill(0); done.fill(0); target = null; hollow = null;
-    const gw = (c, fx, fy) => { const g = gr(c, fx, fy), w = WL[c]; return w > g ? w : g; };
+    const gw = (c, fx, fy) => { if (RV[c]) return HH[c]; const g = gr(c, fx, fy), w = WL[c]; return w > g ? w : g; };
     const pcx = Math.floor(P.x), pcy = Math.floor(P.y), h0 = gw(at(pcx, pcy), P.x - pcx, P.y - pcy);
     for (let x = 0; x < W; x++) {
       const cam = 2 * x / W - 1, rx = dx + px * cam, ry = dy + py * cam, ddx = Math.abs(1 / rx), ddy = Math.abs(1 / ry);
@@ -970,8 +996,14 @@ const infernus = (function () {
               const d = num / den, wx = P.x + ox + d * rx, wy = P.y + oy + d * ry, u = wx - Math.floor(wx), w = wy - Math.floor(wy);
               const lw = Math.max(.035, d * .009), u2 = u + .03 * Math.sin(wy * 4.1 + wx * .7), w2 = w + .03 * Math.sin(wx * 3.7 + 1.3), hh = Math.imul(Math.floor(wx * 3) * 73856093 ^ Math.floor(wy * 3) * 19349663, 2654435761) >>> 0;
               const crack = (Math.imul(c, 40503) & 7) === 0 && Math.abs(u - w * .7 - .12 - .05 * Math.sin(w * 9)) < lw * .8;      // the lines waver, are rubbed out in places, and some flags are cracked
-              if (wet) { buf[j] = mist(Math.max(.07, water(wx, wy, FL[c], t, lw), (u2 < lw || u2 > 1 || w2 < lw || w2 > 1 ? .5 : 0) * Math.exp(-wet * 3.5)) * 255, d); continue; }   // water: its surface, and the bed dimmer the deeper it lies
-              buf[j] = mist((ft === 2 ? ((u + w + .04 * Math.sin(wx * 5)) * 3 % 1 < lw * 3 ? .55 : 0) : (hh & 15) === 0 ? 0 : u2 < lw || u2 > 1 || w2 < lw || w2 > 1 ? .7 : crack ? .45 : 0) * 255, d);
+              if (RV[c]) {                          // water with a bank that is a curve; in a made place, a kerb along it
+                const sd = wfAt(c, u, w);
+                if (sd < 0) { buf[j] = mist(Math.max(.07, water(wx, wy, wfFl(c, u, w), t, lw), sd > -lw * 1.3 ? .8 : 0, flags(wx, wy, lw) * Math.exp(sd * 5)) * 255, d); continue; }
+                if (chunks[mx / S | 0].curb && sd < .2) { buf[j] = mist((sd > .2 - lw * 1.4 || sd < lw * 1.4 || (wx + wy) * 2 % 1 < lw * 2 ? .8 : 0) * 255, d); continue; }
+              }
+              if (ST[c] === 3 && ft === 0) { const k = (Math.sin(wx * 1.9) + Math.cos(wy * 1.6 + wx * .8)) * 1.3 + .15 * Math.sin(wx * 5 + wy * 4); buf[j] = mist((k - Math.floor(k) < lw * 1.3 && (hh & 7) ? .5 : 0) * 255, d); continue; }   // a cavern floor is not paved
+              if (wet) { buf[j] = mist(Math.max(.07, water(wx, wy, FL[c], t, lw), flags(wx, wy, lw) * Math.exp(-wet * 3.5)) * 255, d); continue; }   // water: its surface, and the bed dimmer the deeper it lies
+              buf[j] = mist((ft === 2 ? ((u + w + .04 * Math.sin(wx * 5)) * 3 % 1 < lw * 3 ? .55 : 0) : crack ? .4 : flags(wx, wy, lw)) * 255, d);
             }
           }
         }
@@ -995,7 +1027,8 @@ const infernus = (function () {
           let u = side ? ex : ey; u -= Math.floor(u); if ((!side && rx < 0) || (side && ry > 0)) u = 1 - u;
           face(x, dOut, CH[n], hcb < 90 ? hcb : Math.max(CH[n] + .5, chunks[mx / S | 0].wh), zr, n, u, side ? .8 : 1, hor, K, HH[n], side ? ex : ey, ex, ey);
         }
-        const hu = M[n] === 1 && hcb < 90 ? Math.max(hn, hcb) : hn;   // under a roof, a wall runs up to it
+        const lx = mx % S, rim = M[n] === 1 && (lx === 0 || lx === S - 1 || my === 0 || my === S - 1);
+        const hu = rim ? zr + 60 : M[n] === 1 && hcb < 90 ? Math.max(hn, hcb) : hn;   // under a roof, a wall runs up to it
         if (hu > hb + .01) {                       // a face rising in front of you: a step, a ledge, a wall
           let u = side ? ex : ey; u -= Math.floor(u); if ((!side && rx < 0) || (side && ry > 0)) u = 1 - u;
           if (x === mid && dOut < 1.7 && secretAt.has(n)) hollow = secretAt.get(n);
