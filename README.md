@@ -25,6 +25,7 @@ The mirror (`speculum`) of [Annulus](https://github.com/KeychainofSolomon/Annulu
   - **Water:** drawn with its surface and its bed, the bed dimmer the deeper it lies. Running water streaks downstream; still water lies in ponds, flooded courts and the marsh of Styx. You wade the shallows and swim, slowly, where it is deep.
   - **Signs:** the walls carry none but the words over the Gate, the stars at the way out, and the numeral of the circle a door leads to.
   - **Stone:** wall patterns are worked out from each point's place and height, so courses run level through a whole chamber, joints break bond, and rock strata follow round corners.
+  - **Doorways:** every door is one real arch across its whole width, standing open from the first. Past a door whose far side is not yet made there is only the dark; when it is made, the chamber beyond comes up out of the dark over a few seconds.
   - **Not shown in this build:** Purgatory's entries (the suspected and the proscribed). The plain register still lists them.
 - **Read plainly:** the same records as a plain register.
 
