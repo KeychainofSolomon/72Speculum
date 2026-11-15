@@ -75,6 +75,8 @@ Public domain (see `UNLICENSE`).
 
 - **Four succubae** stand among the lustful, made from Daggerfall's women with horns, wings, a tail and turned skin. [O] They are Annulus's own addition; the succuba is not in Dante but comes from later demon lore.
 
+- **One look for all the people.** Every figure has had the same treatment, so they read as one set: Daggerfall's own shading kept, shadows deepened and tinted with the circle's colour, the skin of the damned gone pale, and each lit or fouled by its place (mud on the gluttons, slime from Styx, the glow of the tombs in Dis, fire from above on the burning sand, frost in the ice).
+
 ## Credit
 
 The picture textures are from the Daggerfall Unity mod **"Daggerfall Dungeon Variety" by demifiend000**, which re-assigns Daggerfall's own dungeon textures (Bethesda Softworks) by kind of dungeon. They are embedded in `index.html`, brightened where very dark. They are not Annulus's work, and the UNLICENSE in this repo covers the code only, not these pictures.
