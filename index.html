@@ -573,12 +573,14 @@ const infernus = (function () {
   const plate = (name, sub, crown) => tex(128, 128, (g, w, h) => {
     masonry(g, w, h); g.fillStyle = "#000"; g.fillRect(6, 36, 116, 60); g.strokeRect(6, 36, 116, 60); g.strokeRect(10, 40, 108, 52); g.fillStyle = "#fff";
     if (crown) { g.beginPath(); g.moveTo(50, 60); g.lineTo(50, 48); g.lineTo(57, 55); g.lineTo(64, 45); g.lineTo(71, 55); g.lineTo(78, 48); g.lineTo(78, 60); g.closePath(); g.stroke(); }
-    g.font = "bold " + (name.length > 10 ? 12 : 16) + "px Palatino, 'Book Antiqua', Georgia, serif"; g.fillText(name, 64, crown ? 78 : 70);
+    g.font = "bold " + (name.length > 10 ? 12 : name.length > 8 ? 13 : 16) + "px Palatino, 'Book Antiqua', Georgia, serif"; g.fillText(name, 64, crown ? 78 : 70);
     if (sub) { g.font = "bold 9px Palatino, Georgia, serif"; g.fillText(sub, 64, 89); }
   });
   const KING = [plate("ORIENS", "EAST", 1), plate("AMAYMON", "SOUTH", 1), plate("PAIMON", "WEST", 1), plate("EGIN", "NORTH", 1)];
   const SENATOR = ["ORMELL", "TEYGRA", "DANALL", "SALERICA", "ASMOE", "PASCARI", "BOELL"].map((n) => plate(n, "SENATOR"));
   const DEVIL = ["LUCIPHER", "BELLZEBUB", "SATAN"].map((n) => plate(n, ""));
+  // [S] the rivers, by Dante's own names for them: Acheronte (III), Stige (VII-VIII), Flegetonta (XII, XIV), Cocito (XXXI-XXXIV)
+  const RIVER = { acheron: plate("ACHERONTE", "RIVER"), styx: plate("STIGE", "MARSH"), phlegethon: plate("FLEGETONTA", "RIVER OF BLOOD"), cocytus: plate("COCITO", "LAKE OF ICE") };
   const EMPEROR = plate("TANTAVALERION", "EMPEROR");
   const GATETEX = tex(256, 128, (g, w, h) => {
     masonry(g, w, h); g.fillStyle = "#000"; g.beginPath(); g.moveTo(24, 128); g.lineTo(24, 60); g.arc(128, 60, 104, Math.PI, 0); g.lineTo(232, 128); g.fill(); g.stroke();
@@ -666,7 +668,7 @@ const infernus = (function () {
     const MOD = {     // the parts a chamber's four quarters are made of
       open: (qi) => { each((u, v) => qs(qi, u, v, 0)); for (let n = 1 + Math.floor(rnd() * 3); n--;) qs(qi, 1 + Math.floor(rnd() * 5), 1 + Math.floor(rnd() * 5), WALLH); qs(qi, 4, 2, 0); return Qm[qi](4, 2); },
       terrace: (qi) => { each((u, v) => qs(qi, u, v, 1.1)); for (let u = 0; u < 4; u++) qs(qi, u, 0, .275 * (u + 1)); return Qm[qi](4, 4); },
-      sunken: (qi) => { each((u, v) => qs(qi, u, v, -1, circle === 2 || circle === 4 || circle === 6 ? 2 : 0)); for (let v = 0; v < 3; v++) qs(qi, 0, v, -.25 * (v + 1)); return Qm[qi](3, 3); },
+      sunken: (qi) => { each((u, v) => qs(qi, u, v, -1)); for (let v = 0; v < 3; v++) qs(qi, 0, v, -.25 * (v + 1)); return Qm[qi](3, 3); },
       pit: (qi) => { each((u, v) => qs(qi, u, v, u && v ? DEEP : .34, u && v ? 1 : 0)); ch.fall = { kind: "down", to: null }; return null; },
       tombs: (qi) => { each((u, v) => qs(qi, u, v, u % 2 && v % 2 ? .45 : 0)); return Qm[qi](4, 4); },
       mound: (qi) => { each((u, v) => qs(qi, u, v, Math.min(u, v, 5 - u, 5 - v) * .3)); return Qm[qi](2, 2); },
@@ -682,21 +684,26 @@ const infernus = (function () {
         after = () => { for (let y = 7; y <= 8; y++) for (let x = 7; x <= 8; x++) put(x, y, .56); for (let cd = 0; cd < 4; cd++) for (const [x, y] of armCells(cd, 1)) put(x, y, .28); }; },   // II: where Minos sits and judges (V)
       () => { for (let qi = 0; qi < 4; qi++) { each((u, v) => qs(qi, u, v, -.6, 2)); qs(qi, 0, 0, -.3); } for (const [qi, u, v] of [[2, 2, 2], [2, 4, 3], [3, 3, 3]]) qs(qi, u, v, .3); spots = [Qm[1](3, 3)]; },   // III: the mire under the rain, and three mounds for the three heads (VI)
       () => { for (let qi = 0; qi < 4; qi++) each((u, v, m) => { if (m === 3 || m === 4) qs(qi, u, v, 0); }); qs(0, 4, 4, .9); qs(2, 4, 4, .9); spots = [Qm[1](3, 3), Qm[3](3, 3)]; },             // IV: the round where the two crowds roll their weights and clash (VII)
-      () => { for (let qi = 0; qi < 4; qi++) { each((u, v) => qs(qi, u, v, -.5, 2)); qs(qi, 0, 0, -.25); } ch.spire = [[3, 3], [3, 4], [4, 3], [4, 4]].map(([u, v]) => qs(0, u, v, WALLH)); spots = [Qm[2](3, 3)]; },  // V: the marsh of Styx, causeways over it, and the signal tower (VII-VIII)
+      () => { for (let qi = 0; qi < 4; qi++) { each((u, v) => qs(qi, u, v, -.5, 2)); qs(qi, 0, 0, -.25); } ch.spire = [[3, 3], [3, 4], [4, 3], [4, 4]].map(([u, v]) => qs(0, u, v, WALLH)); T[R(0, 3)] = T[R(15, 12)] = RIVER.styx; spots = [Qm[2](3, 3)]; },  // V: the marsh of Styx, causeways over it, and the signal tower (VII-VIII)
       () => { spots = [MOD.tombs(2), MOD.tombs(3)]; [[6, 2], [6, 3], [6, 4], [6, 5], [9, 2], [9, 3], [9, 4]].forEach(([x, y], i) => T[R(x, y)] = SENATOR[i]); },                                  // VI: the wall and gate of Dis, and the open tombs beyond (VIII-X)
-      () => { for (const qi of [0, 1]) each((u, v, m) => qs(qi, u, v, -.2 * m)); for (const qi of [2, 3]) { each((u, v) => qs(qi, u, v, -1.2, 2)); for (let v = 0; v < 3; v++) qs(qi, 0, v, -.3 * (v + 1)); } spots = [Qm[1](3, 3)]; },   // VII: the broken cliff, and the river of blood (XII)
+      () => { for (const qi of [0, 1]) each((u, v, m) => qs(qi, u, v, -.2 * m)); for (const qi of [2, 3]) { each((u, v) => qs(qi, u, v, -1.2, 2)); for (let v = 0; v < 3; v++) qs(qi, 0, v, -.3 * (v + 1)); } T[R(4, 15)] = T[R(11, 15)] = RIVER.phlegethon; spots = [Qm[1](3, 3)];
+        after = () => { for (let k = 2; k <= 5; k++) for (const [x, y] of armCells(1, k)) { const c = R(x, y); if (!SD[c] && HH[c] === 0) put(x, y, -.2, 2); } }; },   // the ford, where the blood runs shallowest (XII)   // VII: the broken cliff, and the river of blood (XII)
       () => { for (let qi = 0; qi < 4; qi++) { each((u, v, m) => qs(qi, u, v, m === 2 || m === 4 ? -1.2 : 0)); for (const m of [2, 4]) for (let u = 0; u < 3; u++) qs(qi, u, m, -.3 * (u + 1)); }
         spots = [Qm[2](4, 2), Qm[3](4, 2)]; after = () => { for (let y = 7; y <= 8; y++) for (let x = 7; x <= 8; x++) put(x, y, DEEP, 1); ch.fall = { kind: "down", to: null }; }; },           // VIII: Malebolge, ditches crossed by rock bridges that run to the well at the centre (XVIII)
-      () => { for (let qi = 0; qi < 4; qi++) each((u, v) => qs(qi, u, v, -.2, 2)); spots = [Qm[2](3, 3), Qm[3](3, 3), Qm[0](3, 3)]; }                                                             // IX: the frozen lake of Cocytus (XXXII)
+      () => { for (let qi = 0; qi < 4; qi++) each((u, v) => qs(qi, u, v, -.2, 2)); T[R(0, 4)] = T[R(15, 11)] = RIVER.cocytus; spots = [Qm[2](3, 3), Qm[3](3, 3), Qm[0](3, 3)]; }                                                             // IX: the frozen lake of Cocytus (XXXII)
     ];
 
     if (kind === "gate") {                       // the Gate, shut behind you
       for (let y = 1; y <= 11; y++) for (let x = 4; x <= 11; x++) put(x, y, 0);
       door(1, "down");
       T[at(ox + 7, 0)] = T[at(ox + 8, 0)] = GATETEX; TS[at(ox + 8, 0)] = 1;
-      spots = [[4, 3], [11, 3], [4, 6], [11, 6], [4, 9], [11, 9]];
+      // [S] Acheron lies past the Gate and before Limbo (III). [O] Here you wade it; Dante is carried over in a swoon.
+      for (let y = 7; y <= 8; y++) for (let x = 4; x <= 11; x++) put(x, y, -.3, 2);
+      T[R(3, 7)] = T[R(12, 8)] = RIVER.acheron;
+      spots = [[4, 3], [11, 3], [4, 5], [11, 5], [4, 10], [11, 10]];
     } else if (kind === "exit") {                // the way out, past the centre
-      for (let cd = 0; cd < 4; cd++) { arm(cd, 0); if (cd !== 3) for (const [x, y] of armCells(cd, 7)) T[R(x, y)] = STARS; }
+      // [S] the little stream whose sound leads them out (XXXIV); Dante gives it no name there
+      for (let cd = 0; cd < 4; cd++) { arm(cd, 0); if (cd === 3) for (let k = 1; k <= 6; k++) put(armCells(3, k)[0][0], armCells(3, k)[0][1], -.1, 2); if (cd !== 3) for (const [x, y] of armCells(cd, 7)) T[R(x, y)] = STARS; }
       T[R(6, 6)] = DEVIL[0]; T[R(9, 6)] = DEVIL[1]; T[R(6, 9)] = DEVIL[2]; T[R(9, 9)] = EMPEROR;
     } else {
       const set = !opt.fallen && !fixed[circle];
@@ -767,7 +774,7 @@ const infernus = (function () {
     if (!to) {
       const c2 = Math.max(0, ch.circle + (door.kind === "down" || door.kind === "ledge" ? 1 : door.kind === "deep" ? 2 : door.kind === "up" ? -1 : 0));
       to = c2 > 8 ? build(9, o, sd, 0, "exit") : build(c2, o, sd, ch.dry, "room", { sig: ch.sig, vault: door.kind === "secret", high: door.kind === "ledge" });
-      if (!to) { ch.doors[d] = null; for (const [lx, ly] of doorCells(d)) T[at(ch.id * S + lx, ly)] = WALL[Math.min(8, Math.max(0, ch.circle))]; return; }
+      if (!to) { ch.doors[d] = { kind: "wall", h: 0, to: ch }; for (const [lx, ly] of doorCells(d)) T[at(ch.id * S + lx, ly)] = WALL[Math.min(8, Math.max(0, ch.circle))]; return; }
       to.doors[o] = { kind: "back", h: door.kind === "ledge" ? 4 : 0, to: ch };   // a ledge looks out over the next circle from above; step off and there is no way back up
     }
     door.to = to; join(ch, d, to);
