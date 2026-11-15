@@ -511,12 +511,14 @@ addEventListener("resize", () => { if (!moving) { measure(); place(depth); } });
    [S] Pythagorean number: wall courses in the proportion 6 : 8 : 9 : 12 (octave, fifth,
        fourth); the tetractys of ten for the ten ditches of Malebolge.
    [O] Annulus's own: which record takes which shape and circle; setting the senators in
-       Dis and the three devils by the way out; and the folding of the paths. Each circle
-       is the same ring: a full turn sunwise brings you one circle lower with no stair,
-       and side passages open into other circles. The paths are grown from the Vessel's
-       last fingerprint, so one house always has the same Hell. */
+       Dis and the three devils by the way out; and the growing of the place. Hell is not
+       laid out beforehand. Each chamber is made at the moment you step into the one
+       before it, from the Vessel's last fingerprint and the way you came. A chamber may
+       or may not be given a way down: the next circle exists only where one was made.
+       Doors join chambers that could not lie side by side, and some lead back to
+       chambers already walked, so there is no map of it and no break between circles. */
 const infernus = (function () {
-  const S = 27, C = 13, NB = 11, MW = S * NB, MH = S, GATE = 9, EXIT = 10;
+  const S = 16, NB = 72, MW = S * NB, MH = S;
   const M = new Uint8Array(MW * MH).fill(1), T = new Uint8Array(MW * MH), TS = new Uint8Array(MW * MH), SP = new Int16Array(MW * MH).fill(-1);
   const DX = [1, 0, -1, 0], DY = [0, 1, 0, -1], portal = new Map();
   const at = (x, y) => y * MW + x;
@@ -531,9 +533,8 @@ const infernus = (function () {
   // which shape a record takes, and in which circle it is kept (-1: at the Gate)
   const FORM = { history: ["stele", -1], suspect: ["shade", 0], proscribe: ["shade", 0], lift: ["shade", 0], clear: ["shade", 0], work: ["weight", 3], words: ["flame", 7], datum: ["serpent", 7], damn: ["ice", 8] };
 
-  let seed = parseInt((REGISTRUM.vas.records.at(-1) || { hash: "1" }).hash.slice(0, 8), 16) || 1;
-  const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
-  const pick = (a) => a[Math.floor(rnd() * a.length)];
+  const seed0 = parseInt((REGISTRUM.vas.records.at(-1) || { hash: "1" }).hash.slice(0, 8), 16) || 1;
+  const mulberry = (seed) => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 
   /* ---- textures: white line on black, read as grey and dithered later ---- */
   const TEX = [];
@@ -580,7 +581,8 @@ const infernus = (function () {
     g.font = "bold 12px Palatino, 'Book Antiqua', Georgia, serif"; g.fillText("LASCIATE OGNE SPERANZA", 128, 40); g.fillText("VOI CH'INTRATE", 128, 57);
     g.font = "bold 8.5px Palatino, Georgia, serif"; g.fillText("BELIALL · MALEUS · MALCRANUS", 128, 82); g.fillText("KEEPERS OF THE GATE", 128, 94);
   });
-  const STARS = tex(256, 128, (g) => { for (let i = 0; i < 70; i++) { g.globalAlpha = .4 + .6 * Math.random(); g.fillRect(Math.random() * 256, Math.random() * 96, 1.6, 1.6); } g.globalAlpha = 1; g.font = "bold 9px Palatino, Georgia, serif"; g.fillText("E QUINDI USCIMMO A RIVEDER LE STELLE", 128, 116); });
+  const STARS = tex(128, 128, (g) => { for (let i = 0; i < 60; i++) { g.globalAlpha = .5 + .5 * Math.random(); g.fillRect(Math.random() * 128, Math.random() * 92, 1.5, 1.5); } g.globalAlpha = 1; g.font = "bold 9px Palatino, Georgia, serif"; g.fillText("E QUINDI USCIMMO", 64, 108); g.fillText("A RIVEDER LE STELLE", 64, 120); });
+  const ARCH = tex(128, 128, (g, w, h) => { masonry(g, w, h); g.fillStyle = "#000"; g.beginPath(); g.moveTo(14, 128); g.lineTo(14, 56); g.arc(64, 56, 50, Math.PI, 0); g.lineTo(114, 128); g.fill(); g.stroke(); });
 
   /* ---- the shapes of the condemned: four frames each, black bodies in white line ---- */
   const SHAPE = {
@@ -601,62 +603,90 @@ const infernus = (function () {
     return o;
   });
 
-  /* ---- the ground plan ---- */
-  const spots = [], sprites = [];
-  for (let L = 0; L < 9; L++) {
-    const ox = L * S;
-    for (let ly = 0; ly < S; ly++) for (let lx = 0; lx < S; lx++) {
-      const r = Math.max(Math.abs(lx - C), Math.abs(ly - C)), c = at(ox + lx, ly);
-      T[c] = WALL[L];
-      if (r <= 4) M[c] = 3; else if (r === 5) { M[c] = 2; T[c] = PAR; } else if (r <= 7) M[c] = 0;
+  /* ---- the ground: chambers made as you come to them ---- */
+  const chunks = [], sprites = [], pending = {}, made = {};
+  let total = 0, senators = false;
+  for (const st of ["vas", "index"]) REGISTRUM[st].records.forEach((r, n) => { const fm = FORM[r.kind] || ["shade", 0]; (pending[fm[1]] ||= []).push({ form: fm[0], store: st, r, n }); total++; });
+  const doorCells = (d) => d === 0 ? [[15, 7], [15, 8]] : d === 1 ? [[7, 15], [8, 15]] : d === 2 ? [[0, 7], [0, 8]] : [[7, 0], [8, 0]];
+  function build(circle, entry, seed, dry, kind) {
+    if (chunks.length >= NB) return null;
+    const id = chunks.length, ox = id * S, rnd = mulberry(seed), ch = { id, circle, kind, seed, dry, doors: [null, null, null, null] };
+    chunks.push(ch);
+    const wt = WALL[Math.min(8, Math.max(0, circle))], set = (lx, ly, m) => { M[at(ox + lx, ly)] = m; if (m === 2) T[at(ox + lx, ly)] = PAR; };
+    for (let ly = 0; ly < S; ly++) for (let lx = 0; lx < S; lx++) { const c = at(ox + lx, ly); M[c] = 1; T[c] = wt; TS[c] = 0; SP[c] = -1; }
+    const cross = () => { for (let i = 1; i < 15; i++) { set(7, i, 0); set(8, i, 0); set(i, 7, 0); set(i, 8, 0); } };
+    let spots = [];
+    if (kind === "gate") {                       // the Gate, shut behind you
+      for (let ly = 1; ly <= 11; ly++) for (let lx = 4; lx <= 11; lx++) set(lx, ly, 0);
+      for (let ly = 12; ly < 15; ly++) { set(7, ly, 0); set(8, ly, 0); }
+      T[at(ox + 7, 0)] = T[at(ox + 8, 0)] = GATETEX; TS[at(ox + 8, 0)] = 1;
+      spots = [[4, 3], [11, 3], [4, 6], [11, 6], [4, 9], [11, 9]];
+      ch.doors[1] = { kind: "down", to: null };
+    } else if (kind === "exit") {                // the way out, past the centre
+      cross();
+      for (let d = 0; d < 4; d++) if (d !== entry) for (const [lx, ly] of doorCells(d)) T[at(ox + lx, ly)] = STARS;
+      T[at(ox + 6, 6)] = DEVIL[0]; T[at(ox + 9, 6)] = DEVIL[1]; T[at(ox + 6, 9)] = DEVIL[2]; T[at(ox + 9, 9)] = EMPEROR;
+    } else {
+      let tpl = Math.floor(rnd() * 4);
+      if (circle === 5 && !senators) tpl = 2;
+      cross();
+      if (tpl === 0) { for (let ly = 2; ly < 14; ly++) for (let lx = 2; lx < 14; lx++) if (lx < 4 || lx > 11 || ly < 4 || ly > 11) set(lx, ly, 0); }   // a cloister
+      if (tpl === 1 || tpl === 2) for (let ly = 1; ly < 15; ly++) for (let lx = 1; lx < 15; lx++) set(lx, ly, 0);
+      if (tpl === 1) for (let ly = 5; ly <= 10; ly++) for (let lx = 5; lx <= 10; lx++) set(lx, ly, lx > 5 && lx < 10 && ly > 5 && ly < 10 ? 3 : 2);        // a pit and its parapet
+      if (tpl === 2) for (const lx of [4, 11]) for (const ly of [4, 11]) set(lx, ly, 1);                                                                 // a hall of pillars
+      if (tpl === 0 || tpl === 3) { for (const lx of [6, 5, 4]) set(lx, 5, 0); for (const lx of [9, 10, 11]) set(lx, 10, 0); }                           // alcoves
+      spots = [[4, 5], [11, 10]];
+      if ((tpl === 0 || tpl === 3) && rnd() < .35) { const ly = entry !== 1 ? 12 : 3; set(7, ly, 4); set(8, ly, 4); }                                    // a fissure to leap
+      if (circle === 5 && !senators) { senators = true; [1, 2, 3, 4, 5, 10, 11].forEach((lx, i) => T[at(ox + lx, 0)] = SENATOR[i]); }
+      else if (rnd() < .4) { T[at(ox + 4, 0)] = KING[3]; T[at(ox + 15, 4)] = KING[0]; T[at(ox + 11, 15)] = KING[1]; T[at(ox + 0, 11)] = KING[2]; }
+      let down = false, any = false;
+      for (let d = 0; d < 4; d++) if (d !== entry && rnd() < .72) {
+        let k = "same"; if (!down && rnd() < .4) { k = "down"; down = true; } else if (rnd() < .2) k = "loop";
+        ch.doors[d] = { kind: k, to: null }; any = true;
+      }
+      // mercy [O]: after three chambers with no way down, the next is given one
+      if (!down && dry >= 2) { const d = (entry + 1 + Math.floor(rnd() * 3)) % 4; ch.doors[d] = { kind: "down", to: null }; down = any = true; }
+      if (!any) ch.doors[(entry + 2) % 4] = { kind: "same", to: null };
+      ch.dry = down ? 0 : dry + 1;
+      for (let d = 0; d < 4; d++) if (ch.doors[d]) for (const [lx, ly] of doorCells(d)) T[at(ox + lx, ly)] = ARCH;     // a dark arch until its far side is made
     }
-    T[at(ox + C + 8, C)] = KING[0]; T[at(ox + C, C + 8)] = KING[1]; T[at(ox + C - 8, C)] = KING[2]; T[at(ox + C, C - 8)] = KING[3];
-    if (L === 5) [9, 10, 11, 12, 14, 15, 16].forEach((lx, i) => T[at(ox + lx, C + 8)] = SENATOR[i]);
-    const re = pick([9, 10, 11, 16, 17]), rw = pick([9, 10, 11, 15, 16, 17]), cn = pick([C - 4, C + 4]), cs = pick([C - 5, C + 5]);
-    const le = 2 + Math.floor(rnd() * 3), lw = 2 + Math.floor(rnd() * 3), ln = 2 + Math.floor(rnd() * 3), ls = 2 + Math.floor(rnd() * 3);
-    for (let i = 0; i <= le; i++) M[at(ox + 21 + i, re)] = 0;
-    for (let i = 0; i <= lw; i++) M[at(ox + 5 - i, rw)] = 0;
-    for (let i = 0; i <= ln; i++) M[at(ox + cn, 5 - i)] = 0;
-    for (let i = 0; i <= ls; i++) M[at(ox + cs, 21 + i)] = 0;
-    spots[L] = { east: [ox + 21 + le, re], west: [ox + 5 - lw, rw],
-      rest: [[ox + cn, 5 - ln], [ox + cs, 21 + ls], [ox + C - 7, C - 3], [ox + C + 3, C - 7], [ox + C - 3, C + 7], [ox + C + 7, C + 4], [ox + C - 7, C + 3], [ox + C - 3, C - 7]] };
-    if (L % 2) { const fx = ox + pick([C + 1, C + 2]); M[at(fx, C + 6)] = M[at(fx, C + 7)] = 4; }   // a fissure to leap
-    for (const lx of [C + 6, C + 7]) {       // the seam: one full turn sunwise is one circle down
-      link(ox + lx, C, 1, (L < 8 ? ox + S : EXIT * S) + lx, C + 1);
-      link(ox + lx, C + 1, 3, (L > 0 ? ox - S : GATE * S) + lx, C);
+    const list = pending[circle]; made[circle] = (made[circle] || 0) + 1;
+    while (list && list.length && spots.length && (kind === "gate" || made[circle] > 2 || rnd() < .7)) {
+      const p = spots.shift(), c = at(ox + p[0], p[1]), q = list.shift();
+      M[c] = 5; SP[c] = sprites.length; sprites.push(Object.assign(q, { x: ox + p[0] + .5, y: p[1] + .5, seen: false }));
+    }
+    return ch;
+  }
+  function join(a, d, b) {                       // open the door on side d of a onto the facing door of b
+    const o = (d + 2) % 4, ca = doorCells(d), cb = doorCells(o);
+    for (let i = 0; i < 2; i++) {
+      const ax = a.id * S + ca[i][0], ay = ca[i][1], bx = b.id * S + cb[i][0], by = cb[i][1];
+      M[at(ax, ay)] = M[at(bx, by)] = 0; link(ax, ay, d, bx, by); link(bx, by, o, ax, ay);
     }
   }
-  const fold = 2 + Math.floor(rnd() * 3);    // side passages open into another circle
-  for (let L = 0; L < 9; L++) { const a = spots[L].east, b = spots[(L + fold) % 9].west; link(a[0], a[1], 0, b[0], b[1]); link(b[0], b[1], 2, a[0], a[1]); }
-  { // the Gate, shut behind you
-    const ox = GATE * S;
-    for (let ly = 8; ly <= C; ly++) for (let lx = 17; lx <= 22; lx++) M[at(ox + lx, ly)] = 0;
-    for (let i = 0; i < MW * MH; i++) if (i % MW >= ox && i % MW < ox + S) T[i] = WALL[0];
-    T[at(ox + 19, 7)] = T[at(ox + 20, 7)] = GATETEX; TS[at(ox + 20, 7)] = 1;
-    for (const lx of [C + 6, C + 7]) link(ox + lx, C, 1, lx, C + 1);
-    spots[-1] = { rest: [[ox + 17, 9], [ox + 22, 9], [ox + 17, 11], [ox + 22, 11], [ox + 17, 13], [ox + 22, 13]] };
+  function unfold(ch) {                          // on stepping into a chamber, what lies past its doors is made
+    for (let d = 0; d < 4; d++) {
+      const door = ch.doors[d]; if (!door || door.to) continue;
+      const rnd = mulberry(ch.seed * 31 + d * 7919 + 17), o = (d + 2) % 4;
+      let to = null;
+      if (door.kind === "loop") { const c = chunks.filter((x) => x !== ch && x.kind === "room" && !x.doors[o]); if (c.length) { to = c[Math.floor(rnd() * c.length)]; to.doors[o] = { kind: "loop", to: ch }; } }
+      if (!to) {
+        const c2 = ch.circle + (door.kind === "down" ? 1 : 0);
+        to = c2 > 8 ? build(9, o, ch.seed * 31 + d * 7919 + 17, 0, "exit") : build(c2, o, ch.seed * 31 + d * 7919 + 17, ch.dry, "room");
+        if (!to) { ch.doors[d] = null; for (const [lx, ly] of doorCells(d)) T[at(ch.id * S + lx, ly)] = WALL[Math.min(8, Math.max(0, ch.circle))]; continue; }
+        to.doors[o] = { kind: "back", to: ch };
+      }
+      door.to = to; join(ch, d, to);
+    }
   }
-  { // the way out, past the centre
-    const ox = EXIT * S;
-    for (let i = 0; i < MW * MH; i++) if (i % MW >= ox) T[i] = WALL[8];
-    for (let ly = C + 1; ly <= 19; ly++) M[at(ox + 19, ly)] = M[at(ox + 20, ly)] = 0;
-    T[at(ox + 19, 20)] = T[at(ox + 20, 20)] = STARS; TS[at(ox + 19, 20)] = 1;
-    DEVIL.forEach((t, i) => T[at(ox + 18, 15 + i)] = t); T[at(ox + 21, 16)] = EMPEROR;
-    for (const lx of [C + 6, C + 7]) link(ox + lx, C + 1, 3, 8 * S + lx, C);
-  }
-  for (const st of ["vas", "index"]) REGISTRUM[st].records.forEach((r, n) => {
-    const fm = FORM[r.kind] || ["shade", 0], list = spots[fm[1]].rest, p = list.shift();
-    if (!p) return;
-    const c = at(p[0], p[1]); M[c] = 5; SP[c] = sprites.length;
-    sprites.push({ x: p[0] + .5, y: p[1] + .5, form: fm[0], store: st, r, n, seen: false });
-  });
+  build(-1, -1, seed0, 0, "gate"); unfold(chunks[0]);
 
   /* ---- the eye ---- */
   const cv = $("hell"), g = cv.getContext("2d");
   let W = 480, H = 270, img, buf;
-  const P = { x: GATE * S + 20, y: 11.5, a: -Math.PI / 2, z: .55, vz: 0 };
+  const P = { x: 8, y: 5, a: -Math.PI / 2, z: .55, vz: 0 };
   const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5], WH = 1.7, PL = .72, EYE = .55;
-  let target = null, reading = false, on = false, last = 0;
+  let target = null, reading = false, on = false, last = 0, cur = 0;
   const keys = new Set();
   function size() { H = 400; W = Math.max(480, Math.min(900, Math.round(H * innerWidth / innerHeight / 2) * 2)); cv.width = W; cv.height = H; img = g.createImageData(W, H); buf = new Float32Array(W * H); for (let i = 3; i < img.data.length; i += 4) img.data[i] = 255; }
   const pass = (x, y) => { if (x < 0 || y < 0 || x >= MW || y >= MH) return false; const m = M[at(x, y)]; return m === 0 || (m === 4 && P.z > EYE + .12); };
@@ -671,12 +701,12 @@ const infernus = (function () {
       if (Math.floor(ax ? P.y : P.x) !== here) { const q = portal.get(at(cx, cy) * 4 + dir); if (q) { P.x += q[0]; P.y += q[1]; } }
     }
   }
-  function where() { const b = Math.floor(P.x / S); return b === GATE ? -1 : b === EXIT ? 9 : b; }
+  function where() { return chunks[Math.floor(P.x / S)].circle; }
   function hud() {
     const b = where();
     $("locus").textContent = b < 0 ? "THE GATE" : b > 8 ? "THE WAY OUT" : "CIRCLE " + CIRCLES[b][0] + " · " + CIRCLES[b][1].toUpperCase();
-    $("sensus").textContent = b < 0 ? "It has shut behind you. The history of the Vessel stands here. Turn, and go down by the right hand." : b > 8 ? "Past the centre, to see the stars again." : CIRCLES[b][2];
-    $("found").textContent = sprites.filter((s) => s.seen).length + " of " + sprites.length + " records read · facing " + "ESWN"[(Math.round(P.a / (Math.PI / 2)) % 4 + 4) % 4];
+    $("sensus").textContent = b < 0 ? "It has shut behind you. The history of the Vessel stands here. Turn, and go on: the way is made as you walk it." : b > 8 ? "Past the centre, to see the stars again." : CIRCLES[b][2];
+    $("found").textContent = sprites.filter((s) => s.seen).length + " of " + total + " records read · facing " + "ESWN"[(Math.round(P.a / (Math.PI / 2)) % 4 + 4) % 4];
     $("prompt").textContent = target && !reading ? "E · read: " + explain(target.store, target.r).kind : "";
   }
   function read() {
@@ -699,7 +729,8 @@ const infernus = (function () {
       move((ca * f - sa * s) * v, (sa * f + ca * s) * v);
       if (keys.has("Space") && P.z <= EYE) P.vz = 2.5;
       P.z += P.vz * dt; P.vz -= 7 * dt; if (P.z <= EYE) { P.z = EYE; P.vz = 0; }
-      if (where() === 9 && P.y > 18.4) { leave(); return; }
+      const here = Math.floor(P.x / S); if (here !== cur) { cur = here; unfold(chunks[cur]); }
+      if (chunks[cur].kind === "exit" && Math.abs(P.x - cur * S - 8) < 1.1 && Math.abs(P.y - 8) < 1.1) { leave(); return; }
     }
     draw(t); hud();
   }
@@ -758,7 +789,7 @@ const infernus = (function () {
     for (let y = 0, i = 0; y < H; y++) for (let x = 0; x < W; x++, i++) o[i * 4] = o[i * 4 + 1] = o[i * 4 + 2] = buf[i] > BAYER[(y & 3) * 4 + (x & 3)] * 15 + 9 ? 242 : 0;
     g.putImageData(img, 0, 0);
   }
-  function enter() { on = true; size(); P.x = GATE * S + 20; P.y = 11.5; P.a = -Math.PI / 2; P.z = EYE; reading = false; $("lectio").hidden = true; last = performance.now(); }
+  function enter() { on = true; size(); P.x = 8; P.y = 5; cur = 0; P.a = -Math.PI / 2; P.z = EYE; reading = false; $("lectio").hidden = true; last = performance.now(); }
   function leave() { on = depth > 0; if (document.pointerLockElement) document.exitPointerLock(); reading = false; $("lectio").hidden = true; travel(0, () => { on = false; $("glass").focus(); }); }
   addEventListener("keydown", (e) => {
     if (!on || scene !== "hell") return;
@@ -773,7 +804,7 @@ const infernus = (function () {
   addEventListener("pointermove", (e) => { if (on && !reading && (document.pointerLockElement === cv || drag)) P.a += e.movementX * .0032; });
   addEventListener("resize", () => { if (on) size(); });
   requestAnimationFrame(frame);
-  return { enter, leave, P, sprites, S, get on() { return on; } };
+  return { enter, leave, P, sprites, chunks, S, get on() { return on; } };
 })();
 
 $("state").innerHTML = REGISTRUM.sample

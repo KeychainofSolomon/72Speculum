@@ -7,6 +7,7 @@ The mirror (`speculum`) of [Annulus](https://github.com/KeychainofSolomon/Annulu
 `index.html` is a **design sample**. Open it in a browser. It reads no real files: the records it shows are samples in the shape of `annulus.vas` (the Vessel) and `annulus.proscriptio` (the Index).
 
 - **Scry:** the glass draws you into Hell, a black-and-white place you walk through. W A S D walk, mouse or arrow keys turn, Space leaps, E reads, Esc rises.
+  Hell is not laid out beforehand. Each chamber is made when you step into the one before it, and a chamber may or may not be given a way down, so the next circle exists only where one was made. Doors join chambers that could not lie side by side, and some lead back to chambers already walked. There is no break between circles.
 - **Read plainly:** the same records as a plain register.
 
 ## What is fixed by the spec and not yet built
