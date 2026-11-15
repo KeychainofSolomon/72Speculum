@@ -563,8 +563,8 @@ const infernus = (function () {
   const arch = (g, x0, x1, base, top) => { const r = (x1 - x0) / 2; g.fillStyle = "#000"; g.beginPath(); g.moveTo(x0, base); g.lineTo(x0, top + r); g.arc(x0 + r, top + r, r, Math.PI, 0); g.lineTo(x1, base); g.fill(); g.stroke(); g.fillStyle = "#fff"; };
   const GATETEX = tex(256, 128, (g) => {     // the shut leaves of the Gate, and Dante's words on them (III)
     g.fillStyle = "#000"; g.fillRect(0, 0, 256, 128); g.fillStyle = "#fff"; g.globalAlpha = .5; g.beginPath(); g.moveTo(128, 0); g.lineTo(128, 128); g.stroke(); g.globalAlpha = 1;
-    g.fillStyle = "#000"; g.fillRect(48, 44, 160, 44); g.fillStyle = "#fff";
-    g.font = "bold 12px Palatino, 'Book Antiqua', Georgia, serif"; g.fillText("LASCIATE OGNE SPERANZA", 128, 62); g.fillText("VOI CH'INTRATE", 128, 80);
+    g.fillStyle = "#000"; g.fillRect(6, 36, 244, 60); g.fillStyle = "#fff";
+    g.font = "bold 17px Palatino, 'Book Antiqua', Georgia, serif"; g.fillText("LASCIATE OGNE SPERANZA", 128, 60); g.fillText("VOI CH'INTRATE", 128, 84);
   }, true);
   const SECRET = tex(128, 128, (g) => { g.globalAlpha = .8; g.beginPath(); g.moveTo(60, 128); for (const [x, y] of [[63, 104], [58, 86], [66, 70], [61, 52], [65, 40]]) g.lineTo(x, y); g.stroke(); }, true);
   // what hides a hidden way: 0 a slab of the wall with a hairline round it, 1 a case of books, 2 a figure in a niche (3 is no thing at all: a wall that is not there)
@@ -814,6 +814,7 @@ const infernus = (function () {
     const bed = (x, y, r, fl) => {               // the ground the water crosses is levelled for it
       for (let iy = Math.floor(y - r - .6); iy <= Math.floor(y + r + .6); iy++) for (let ix = Math.floor(x - r - .6); ix <= Math.floor(x + r + .6); ix++) {
         if (ix < 1 || iy < 1 || ix > 14 || iy > 14) continue; const c = R(ix, iy); if (RV[c] || HH[c] <= DEEP) continue;
+        if (M[c] === 1 && (ix < 2 || iy < 2 || ix > 13 || iy > 13 || AR[c + 1] || AR[c - 1] || AR[c + MW] || AR[c - MW])) continue;
         undo.push([c, HH[c], M[c], FT[c], DG[c]]);
         if (SD[c]) { RV[c] = 1; continue; }      // on a slope the water keeps its banks and runs down it
         if (!keep.has(c)) { HH[c] = 0; M[c] = 0; FT[c] = 0; DG[c] = 0; }
@@ -835,7 +836,7 @@ const infernus = (function () {
         }
       };
       const run = (wind) => {
-        const src = kind === "gate" ? [9.5, 2] : [8, 2.2];
+        const src = kind === "gate" ? [9.5, 3.2] : [8, 2.2];
         if (kind !== "gate") course(8, .2, src[0], src[1], Q, 0);       // in by the door you came by
         if (!outs.length) { const p = Qm[Math.floor(rnd() * 4)](2, 2); course(src[0], src[1], p[0] + .5, p[1] + .5, Q, wind); for (const [dx, dy, r] of [[0, 0, 1.3], [.8, .4, .9], [-.5, .7, .8]]) { bed(p[0] + .5 + dx, p[1] + .5 + dy, r, 255); stamp(p[0] + .5 + dx, p[1] + .5 + dy, r, 255); } }
         outs.forEach((cd, i) => {
@@ -1021,15 +1022,16 @@ const infernus = (function () {
     draw(t); hud();
   }
   // one upright face in one screen column. Its edges are snapped to a coarse grid, as on the first PlayStation, so they shiver as you move.
-  function face(x, d, lo, up, zr, n, u, sh, hor, K, base, al, wx, wy) {
+  function face(x, d, lo, up, zr, n, u, sh, hor, K, base, al, wx, wy, corner) {
     const dd = Math.max(d, .03), top = Math.round((hor - (up - zr) * K / dd) / SNAP) * SNAP, bot = Math.round((hor - (lo - zr) * K / dd) / SNAP) * SNAP;
     const e = Math.exp(-dd * FOGK), haze = FOG * (1 - e), fall = Math.min(1, 6 / (1 + .012 * dd * dd)) * sh * 255 * e * FD, edge = Math.min(1, 8 / (1 + .01 * dd * dd)) * 255 * e * FD;
-    const t0 = T[n] ? TEX[T[n]] : null, tx = t0 && t0.lv[Math.max(0, Math.min(3, Math.round(Math.log2(t0.lv[0].h / WALLH * dd / K))))], tu = tx ? Math.min(tx.w - 1, Math.floor((TS[n] + u) / t0.span * tx.w)) : 0;
+    const t0 = T[n] ? TEX[T[n]] : null, tx = t0 && t0.lv[Math.max(0, Math.min(3, Math.round(Math.log2(t0.lv[0].h / WALLH * dd / K)) - 1))], tu = tx ? Math.min(tx.w - 1, Math.floor((TS[n] + u) / t0.span * tx.w)) : 0;
     const ya = Math.max(0, top), yz = Math.min(H - 1, bot), q = dd / K, lw = Math.max(.012, dd * .0045), st = ST[n];
     for (let y = ya; y <= yz; y++) {
       const j = y * W + x; if (done[j]) continue; done[j] = 1;
       if (y <= ya + 1 || y >= yz - 1) { buf[j] = haze + edge; continue; }
       const h = zr - (y - hor) * q, v = (h - base) / WALLH; let p = 0;
+      if (corner && h < corner) { buf[j] = haze + edge * .7; continue; }
       if (tx && v >= 0 && v < 1) p = tx.d[Math.min(tx.h - 1, Math.floor((1 - v) * tx.h)) * tx.w + tu];
       buf[j] = haze + (p ? (p === 1 ? 0 : p / 255) : stone(st, al, wx, wy, h, lw)) * fall;
     }
@@ -1139,7 +1141,7 @@ const infernus = (function () {
             const j = y * W + x; if (done[j]) continue; done[j] = 1;
             const d = q / (hor - y), wx = P.x + ox + d * rx, wy = P.y + oy + d * ry, u = wx - Math.floor(wx), w = wy - Math.floor(wy);
             const lw = Math.max(.035, d * .009), k = (Math.sin(wx * .8) + Math.cos(wy * .7 + wx * .3)) * .7;
-            buf[j] = mist((ct === 1 ? flags(wx, wy, lw) : ct === 3 ? (w * 2 % 1 < .14 ? .6 : 0) : k - Math.floor(k) < lw * 1.3 ? .28 : 0) * 255, d);
+            buf[j] = mist((AR[c] ? 0 : ct === 1 ? flags(wx, wy, lw) : ct === 3 ? (w * 2 % 1 < .14 ? .6 : 0) : k - Math.floor(k) < lw * 1.3 ? .28 : 0) * 255, d);
           }
         }
         if (cut) { const wtop = chunks[mx / S | 0].wh; face(x, cut, hout, hc < 90 ? Math.max(hc, wtop) : wtop, zr, c, ex - mx, .9, hor, K, hout, (ex - mx) * 1.414 + mx + my, ex, ey); break; }   // a wall set aslant
@@ -1169,7 +1171,13 @@ const infernus = (function () {
         if (hu > hb + .01) {                       // a face rising in front of you: a step, a ledge, a wall
           let u = side ? ex : ey; u -= Math.floor(u); if ((!side && rx < 0) || (side && ry > 0)) u = 1 - u;
           if (RV[n] && hn - hb > 1.2) cascade(x, dOut, hb, hn, zr, (AR[n] === 1 ? ex - (mx / S | 0) * S : ey) - 8, hor, K, t);      // the river going over a ledge
-          if (face(x, dOut, hb, hu, zr, n, u, side ? .8 : 1, hor, K, SB[n] + (pd ? 0 : 0), side ? ex : ey, ex, ey) <= 0) break;
+          let corner = 0;
+          if (M[n] === 1 && !pd) {                 // does this wall end here, or turn toward you?
+            const fr = side ? ex - Math.floor(ex) : ey - Math.floor(ey), uw = Math.max(.02, dOut * .006), st = side ? 1 : MW;
+            const nb = fr < uw ? n - st : fr > 1 - uw ? n + st : -1, cb = fr < uw ? c - st : c + st;      // beside a doorway the line stops where the arch springs
+            if (nb >= 0 && (M[nb] !== 1 || M[cb] === 1)) corner = AR[nb] ? AB[nb] + 1.15 : 99;
+          }
+          if (face(x, dOut, hb, hu, zr, n, u, side ? .8 : 1, hor, K, SB[n], side ? ex : ey, ex, ey, corner) <= 0) break;
         }
         dIn = dOut; hin = hn;
       }
