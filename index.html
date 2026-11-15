@@ -574,9 +574,10 @@ const infernus = (function () {
       for (let r = 0; r < 4; r++) { const y = 39.5 + r * 29.5; g.beginPath(); g.moveTo(8, y); g.lineTo(248, y); g.stroke(); let x = 12; g.globalAlpha = .75; while (x < 240) { const w = 4 + Math.random() * 7, h = 17 + Math.random() * 9; g.strokeRect(x, y - h, w, h); x += w + (Math.random() < .12 ? 7 : 0); } g.globalAlpha = 1; } }, true),
     tex(256, 128, (g) => { arch(g, 78, 178, 128, 12); g.strokeRect(102, 106, 52, 20); g.beginPath(); g.moveTo(128, 40); g.quadraticCurveTo(154, 72, 147, 106); g.lineTo(109, 106); g.quadraticCurveTo(102, 72, 128, 40); g.stroke(); g.beginPath(); g.arc(128, 33, 8, 0, 7); g.stroke(); }, true)];
   // [O] after Superliminal: a way painted on a wall, that is only paint
-  const PAINTED = tex(128, 128, (g) => { arch(g, 14, 114, 128, 28);
-    for (const k of [.72, .5, .33, .2]) { g.globalAlpha = .35 + k * .6; g.strokeRect(64 - 50 * k, 92 - 52 * k, 100 * k, 88 * k); } g.globalAlpha = .7;
-    for (const [x, y] of [[14, 128], [114, 128], [14, 50], [114, 50]]) { g.beginPath(); g.moveTo(x, y); g.lineTo(64 + (x - 64) * .2, 92 + (y > 80 ? 7 : -10)); g.stroke(); } }, true);
+  SLABT[4] = tex(256, 128, (g) => { arch(g, 28, 228, 128, 14);      // a passage painted on the wall
+    for (const k of [.78, .56, .38, .24]) { g.globalAlpha = .35 + k * .6; g.strokeRect(128 - 92 * k, 88 - 62 * k, 184 * k, 100 * k); } g.globalAlpha = .7;
+    for (const [x, y] of [[36, 126], [220, 126], [36, 40], [220, 40]]) { g.beginPath(); g.moveTo(x, y); g.lineTo(128 + (x - 128) * .24, 88 + (y > 80 ? 9 : -15)); g.stroke(); } }, true);
+  const PAINTED = 0;
   // a door that leads to another circle bears that circle's numeral over its arch
   const NUMT = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"].map((n) => tex(256, 128, (g) => { g.font = "bold 15px Palatino, 'Book Antiqua', Georgia, serif"; g.fillText(n, 128, 12); }, true));
 
@@ -696,7 +697,7 @@ const infernus = (function () {
     const door = (cd, k, fissure) => {
       arm(cd, DROP[k], fissure); ch.doors[A(cd)] = { kind: k, h: -DROP[k], to: null, ds: k === "scale" ? (rnd() < .5 ? 2 : .5) : 1 };
       const to = circle + (k === "down" || k === "ledge" ? 1 : k === "deep" ? 2 : k === "up" ? -1 : 0), d = A(cd);
-      const sl = k === "secret" ? { ch: id, d, f: 0, sv: rnd() < .3 ? 3 : Math.floor(rnd() * 3), open: false, ill: false, wob: 0, x: 0, y: 0 } : null;
+      const sl = k === "secret" ? { ch: id, d, f: 0, sv: [3, 3, 4, 4, 0, 1, 2][Math.floor(rnd() * 7)], open: false, ill: false, wob: 0, hold: 0, x: 0, y: 0 } : null;
       if (sl) { sl.ill = sl.sv === 3; slabs.push(sl); ch.doors[d].slab = sl; }
       for (const [x, y] of armCells(cd, 7)) {
         const c = put(x, y, -DROP[k]), lx = c % MW - ox, ly = c / MW | 0;      // the doorway stands open from the first; what lies beyond is dark until it is made
@@ -775,7 +776,7 @@ const infernus = (function () {
       if (!any) kinds[1][1] = "same";
       ch.dry = down ? 0 : dry + 1;
       if (!opt.fallen) arm(3, 0);
-      for (const [cd, k] of kinds) { if (k) door(cd, k, !set && DROP[k] === 0 && k !== "secret" && rnd() < .22); else { arm(cd, 0); if (rnd() < .3) for (const [x, y] of armCells(cd, 7)) T[R(x, y)] = PAINTED; } }
+      for (const [cd, k] of kinds) { if (k) door(cd, k, !set && DROP[k] === 0 && k !== "secret" && rnd() < .22); else arm(cd, 0); }
       if (set) { fixed[circle] = true; SETP[circle](); ch.sig = "set" + circle; }
       else for (let tries = 0; tries < 6; tries++) {
         const names = [...new Set(THEME[circle].mods.map((n) => [rnd(), n]).sort((a, b) => a[0] - b[0]).map((e) => e[1]))].slice(0, 4);
@@ -904,7 +905,7 @@ const infernus = (function () {
     if (ch.drapes) for (const c of ch.drapes) { CT[c] = 1; CH[c] = HH[c] + 1.25; }
     if (ch.low) for (const c of ch.low) { CT[c] = 1; CH[c] = HH[c] + 1.5; }      // the twisting passage is a close tube, its roof as near as its floor      // a hanging comes down to head height
     if (ch.fall) { let n = 0, px = 0, py = 0; for (let ly = 1; ly < 15; ly++) for (let lx = 1; lx < 15; lx++) if (HH[at(ox + lx, ly)] <= DEEP) { n++; px += ox + lx + .5; py += ly + .5; } ch.pit = n ? [px / n, py / n] : [ox + 8, 8]; }
-    if (roof === 2) for (const dd of ch.doors) if (dd && dd.slab && (dd.slab.sv === 1 || dd.slab.sv === 2)) dd.slab.sv = 0;      // no bookcases in caves
+    if (roof === 2) for (const dd of ch.doors) if (dd && dd.slab && (dd.slab.sv === 1 || dd.slab.sv === 2 || dd.slab.sv === 4)) dd.slab.sv = 0;      // no bookcases in caves
     const list = pending[circle]; made[circle] = (made[circle] || 0) + 1;
     while (list && list.length && spots.length && (kind === "gate" || opt.vault || made[circle] > 2 || rnd() < .7)) {
       const p = spots.shift(), c = R(p[0], p[1]); if (M[c] !== 0 || HH[c] <= DEEP) continue;
@@ -916,7 +917,7 @@ const infernus = (function () {
     const o = (d + 2) % 4, ca = doorCells(d), cb = doorCells(o), ha = a.doors[d].h, hb = b.doors[o].h || 0;
     for (let i = 0; i < 2; i++) {
       const ax = a.id * S + ca[i][0], ay = ca[i][1], bx = b.id * S + cb[i][0], by = cb[i][1];
-      for (const [c, h] of [[at(ax, ay), ha], [at(bx, by), hb]]) { M[c] = 0; HH[c] = h; SD[c] = 0; CT[c] = 1; CH[c] = h + 2.1; AR[c] = d & 1 ? 1 : 2; AB[c] = h; if (T[c] === PAINTED) T[c] = 0; }
+      for (const [c, h] of [[at(ax, ay), ha], [at(bx, by), hb]]) { M[c] = 0; HH[c] = h; SD[c] = 0; CT[c] = 1; CH[c] = h + 2.1; AR[c] = d & 1 ? 1 : 2; AB[c] = h; }
       if (a.doors[d].river) { RV[at(ax, ay)] = RV[at(bx, by)] = 1; if (hb - ha > 1.2) for (const k of [1, 2]) MI[at(bx + DX[d] * k, by + DY[d] * k)] = 1; }      // the river goes through with you; below a fall, mist
       const ds = a.doors[d].ds || 1;
       portal.set(at(ax, ay) * 4 + d, [bx - ax - DX[d], by - ay - DY[d], hb - ha, ds]); portal.set(at(bx, by) * 4 + o, [ax - bx - DX[o], ay - by - DY[o], ha - hb, 1 / ds]);
@@ -1017,7 +1018,14 @@ const infernus = (function () {
         P.roll += (P.rt - P.roll) * Math.min(1, dt * 3);
         cv.style.transform = Math.abs(P.roll % 360) > .05 ? "rotate(" + P.roll.toFixed(2) + "deg) scale(" + (1 + (Math.max(1, innerWidth / innerHeight) - 1) * Math.abs(Math.sin(P.roll * Math.PI / 180))).toFixed(3) + ")" : ""; }
       if (FT[at(Math.floor(P.x), Math.floor(P.y))] === 9) { leave(); return; }      // out under the stars
-      for (const sl of slabs) { if (sl.open && sl.f < 1) sl.f = Math.min(1, sl.f + dt / 1.8); if (sl.ill) sl.wob = Math.max(0, Math.min(1, 2 - Math.hypot(P.x - sl.x, P.y - sl.y))); }
+      for (const sl of slabs) {
+        if (sl.sv === 4 && !sl.open) {             // [O] after Superliminal: stand square before the painted passage, look straight down it, and it is a passage
+          const ux = DX[sl.d], uy = DY[sl.d], rx = sl.x - P.x, ry = sl.y - P.y, ahead = rx * ux + ry * uy, off = Math.abs(rx * uy - ry * ux);
+          sl.hold = ahead > .8 && ahead < 4.5 && off < .3 && Math.cos(P.a) * ux + Math.sin(P.a) * uy > .992 && Math.abs(P.p) < .12 && Math.floor(P.x / S) === sl.ch ? sl.hold + dt : 0;
+          if (sl.hold > .7) { sl.open = true; open(chunks[sl.ch], sl.d); }
+        }
+        if (sl.open && sl.f < 1) sl.f = Math.min(1, sl.f + dt / (sl.sv === 4 ? .5 : 1.8)); if (sl.ill) sl.wob = Math.max(0, Math.min(1, 2 - Math.hypot(P.x - sl.x, P.y - sl.y)));
+      }
     }
     draw(t); hud();
   }
@@ -1157,7 +1165,7 @@ const infernus = (function () {
           const sn = SLB[n] ? slabAt.get(n) : null, sc = SLB[c] ? slabAt.get(c) : null;
           const hit = sn && d === sn.d && sn.f < 1 ? [sn, n, lat(n, ex, ey, sn.d)] : sc && d === (sc.d + 2) % 4 && sc.f < 1 ? [sc, c, lat(c, ex, ey, sc.d)] : null;
           if (hit && (hit[0].ill || hit[2] > -1 + 2 * hit[0].f)) {
-            if (x === mid && dOut < 1.7 && !hit[0].ill && !hit[0].open) hollow = hit[0];
+            if (x === mid && dOut < 1.7 && !hit[0].ill && !hit[0].open && hit[0].sv !== 4) hollow = hit[0];
             slabFace(x, dOut, hb, Math.max(chunks[mx / S | 0].wh, hcb < 90 ? hcb : 0), zr, hit[1], hit[2], hit[0], side ? .8 : 1, hor, K, ex, ey, t); break;
           }
         }

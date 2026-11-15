@@ -10,6 +10,7 @@ The mirror (`speculum`) of [Annulus](https://github.com/KeychainofSolomon/Annulu
   Hell is not laid out beforehand. Each chamber is made when you step into the one before it, and a chamber may or may not be given a way down, so the next circle exists only where one was made. There is no break between circles.
   - **Heights:** floors rise and fall. Ways down are ramps; some drop two circles, some climb one. There are terraces, sunken courts, steps, mounds and tombs.
   - **Pitfalls:** fall into a chasm and you land in another chamber.
+  - **The painted passage:** some walls bear a passage painted in perspective. Stand square in front of it, look straight down it, and it becomes a real one.
   - **Hidden ways:** some walls are false. A hairline crack is the tell; face it and press E.
   - **Set plans and parts:** the first chamber of each circle entered by a door or a hidden way has a set plan after Dante's buildings (the noble castle, Minos's seat, the mire, the round of the weights, Styx and its tower, the wall of Dis and its tombs, the broken cliff and the river of blood, the ditches and bridges of Malebolge with their well, the ice of Cocytus). Every other chamber is put together from parts and never the same way as the one before it.
   - **Roofs:** where a chamber has one it is drawn: a built ceiling, a cavern, or rafters. Doorways are low passages through the wall.
@@ -26,6 +27,7 @@ The mirror (`speculum`) of [Annulus](https://github.com/KeychainofSolomon/Annulu
   - **Signs:** the walls carry none but the words over the Gate, the stars at the way out, and the numeral of the circle a door leads to.
   - **Stone:** wall patterns are worked out from each point's place and height, so courses run level through a whole chamber, joints break bond, and rock strata follow round corners.
   - **Doorways:** every door is one real arch across its whole width, standing open from the first. Past a door whose far side is not yet made there is only the dark; when it is made, the chamber beyond comes up out of the dark over a few seconds.
+  - **The painted passage:** some walls bear a passage painted in perspective. Stand square in front of it, look straight down it, and it becomes a real one.
   - **Hidden ways:** what hides one is a slab of the wall, a case of books or a figure in a niche, which slides aside when you press E; or a wall that is not there at all, which wavers like water as you come near and lets you walk through.
   - **The Gate and the way out:** the Gate stands shut in a deep arch with Dante's words on its leaves; the way out is three open arches onto the stars.
   - **Falls:** where the river goes over a ledge it falls as a waterfall, with mist at its foot. On slopes the river keeps its banks and runs down them.
