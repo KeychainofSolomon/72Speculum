@@ -538,7 +538,7 @@ const infernus = (function () {
   // which shape a record takes, and in which circle it is kept (-1: at the Gate).
   // Purgatory's entries (suspected, proscribed, lifted, cleared) are not in Hell and are
   // not shown in this build; the plain register still lists them.
-  const FORM = { history: ["stele", -1], work: ["weight", 3], words: ["flame", 7], datum: ["serpent", 7], damn: ["ice", 8] };
+  const FORM = { history: ["stele", -1], work: ["soul", 3], words: ["flame", 7], datum: ["serpent", 7], damn: ["icesoul", 8] };
 
   const seed0 = parseInt((REGISTRUM.vas.records.at(-1) || { hash: "1" }).hash.slice(0, 8), 16) || 1;
   const mulberry = (seed) => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
@@ -614,21 +614,49 @@ const infernus = (function () {
   }
 
   /* ---- the shapes of the condemned: four frames each, black bodies in white line ---- */
-  const SHAPE = {
-    stele: (g) => { g.beginPath(); g.moveTo(16, 63); g.lineTo(16, 20); g.arc(32, 20, 16, Math.PI, 0); g.lineTo(48, 63); g.closePath(); g.fill(); g.stroke(); g.lineWidth = 1; for (let y = 24; y < 58; y += 6) { g.beginPath(); g.moveTo(22, y); g.lineTo(42 - (y % 12 ? 0 : 7), y); g.stroke(); } g.beginPath(); g.arc(32, 13, 3, 0, 7); g.stroke(); },
-    shade: (g, f) => { const s = [0, 2, 0, -2][f]; g.beginPath(); g.moveTo(32 + s, 3); g.quadraticCurveTo(54, 30, 50, 63); g.lineTo(14, 63); g.quadraticCurveTo(10, 30, 32 + s, 3); g.fill(); g.stroke(); g.beginPath(); g.ellipse(32 + s / 2, 20, 6, 8, 0, 0, 7); g.stroke(); g.beginPath(); g.ellipse(32, 42, 19, 5, 0, 0, 7); g.stroke(); g.beginPath(); g.ellipse(32, 50, 19, 5, 0, 0, 7); g.stroke(); },
-    weight: (g, f) => { g.beginPath(); g.arc(40, 40, 21, 0, 7); g.fill(); g.stroke(); const a = f * .8; g.beginPath(); g.moveTo(40 - 21 * Math.cos(a), 40 - 21 * Math.sin(a)); g.lineTo(40 + 21 * Math.cos(a), 40 + 21 * Math.sin(a)); g.moveTo(40 + 21 * Math.sin(a), 40 - 21 * Math.cos(a)); g.lineTo(40 - 21 * Math.sin(a), 40 + 21 * Math.cos(a)); g.stroke(); g.beginPath(); g.moveTo(4, 63); g.lineTo(14, 30 + (f % 2)); g.lineTo(22, 40); g.lineTo(16, 63); g.closePath(); g.fill(); g.stroke(); g.beginPath(); g.arc(13, 24 + (f % 2), 4, 0, 7); g.fill(); g.stroke(); },
-    flame: (g, f) => { const k = [0, 4, -3, 2][f]; g.beginPath(); g.moveTo(32, 62); g.bezierCurveTo(8, 50, 20 + k, 30, 24 - k, 4); g.bezierCurveTo(30, 18, 30, 24, 33, 28); g.bezierCurveTo(36, 22, 38 + k, 14, 42 + k, 8); g.bezierCurveTo(46, 30, 56 - k, 50, 32, 62); g.fill(); g.stroke(); g.beginPath(); g.moveTo(32, 56); g.bezierCurveTo(22, 48, 28 + k, 40, 31, 34); g.bezierCurveTo(36, 42, 42, 48, 32, 56); g.stroke(); },
-    serpent: (g, f) => { const path = () => { g.beginPath(); for (let y = 62; y >= 12; y -= 2) g.lineTo(32 + (6 + (62 - y) * .22) * Math.sin(y / 7 + f * 1.57), y); }; g.lineWidth = 9; g.strokeStyle = "#fff"; path(); g.stroke(); g.lineWidth = 5.5; g.strokeStyle = "#000"; path(); g.stroke(); g.strokeStyle = "#fff"; g.lineWidth = 1.5; const hx = 32 + 17 * Math.sin(12 / 7 + f * 1.57); g.beginPath(); g.moveTo(hx - 8, 12); g.lineTo(hx, 1); g.lineTo(hx + 8, 12); g.closePath(); g.fill(); g.stroke(); g.beginPath(); g.moveTo(hx, 1); g.lineTo(hx - 3, -4); g.moveTo(hx, 1); g.lineTo(hx + 3, -4); g.stroke(); },
-    ice: (g, f) => { g.beginPath(); g.arc(32, 40, 13, Math.PI, 0); g.fill(); g.stroke(); g.beginPath(); g.moveTo(21, 33); g.lineTo(13, 14); g.lineTo(27, 29); g.closePath(); g.fill(); g.stroke(); g.beginPath(); g.moveTo(43, 33); g.lineTo(51, 14); g.lineTo(37, 29); g.closePath(); g.fill(); g.stroke(); g.beginPath(); g.moveTo(0, 42); for (const [x, y] of [[9, 38], [17, 44], [26, 40], [38, 43], [47, 38], [56, 44], [64, 40], [64, 64], [0, 64]]) g.lineTo(x, y); g.closePath(); g.fill(); g.stroke(); g.lineWidth = 1; g.beginPath(); g.moveTo(17, 44); g.lineTo(22, 58); g.moveTo(38, 43); g.lineTo(34, 60); g.moveTo(47, 38); g.lineTo(52, 56); g.stroke(); g.fillRect(8 + f * 14, 50, 2, 2); }
+  /* The shapes are built of blocks and drawn as facets with bright edges, seen from eight sides so you can walk round them.
+     [S] Where a record names its spirit, the shape is that spirit's as the Goetia gives it (Sloane 3825): Marbas a great lion,
+         Furfur a hart with a fiery tail. They stand for the record, as an effigy; the mirror still shows no spirit.
+     [O] Voided work is a soul pushing a weight; an intruder's input a coiled serpent; unattributed words a flame; the damned are sunk in ice. */
+  const VX = 16, VY = 24, VZ = 16;
+  function model(make) {
+    const d = new Uint8Array(VX * VY * VZ);
+    const box = (x0, x1, y0, y1, z0, z1, v = 1) => { for (let y = y0; y <= y1; y++) for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) if (x >= 0 && y >= 0 && z >= 0 && x < VX && y < VY && z < VZ) d[(y * VZ + z) * VX + x] = v; };
+    make(box); return d;
+  }
+  const lion = (b) => { b(2, 10, 7, 13, 4, 11); for (const x of [2, 8]) for (const z of [4, 9]) b(x, x + 2, 0, 6, z, z + 2); b(9, 13, 6, 18, 2, 13); b(10, 12, 19, 19, 4, 11); b(13, 15, 9, 15, 5, 10); b(15, 15, 9, 11, 6, 9, 0); b(14, 15, 16, 16, 5, 5); b(14, 15, 16, 16, 10, 10);
+    b(0, 1, 11, 12, 7, 8); b(0, 0, 13, 16, 7, 8); b(0, 1, 17, 18, 6, 9); };
+  const soul = (b) => { b(3, 5, 0, 6, 4, 6); b(3, 5, 0, 6, 9, 11); b(3, 6, 7, 14, 4, 11); b(4, 7, 15, 19, 6, 9); b(7, 9, 11, 13, 3, 5); b(7, 9, 11, 13, 10, 12); };
+  const sunk = (m) => model((b) => { const src = model(m); for (let y = 8; y < VY; y++) for (let z = 0; z < VZ; z++) for (let x = 0; x < VX; x++) if (src[(y * VZ + z) * VX + x]) b(x, x, y - 6, y - 6, z, z); b(0, 15, 0, 1, 1, 14); b(2, 5, 2, 3, 2, 5); b(11, 14, 2, 4, 11, 13); b(1, 3, 2, 2, 11, 13); b(12, 14, 2, 2, 2, 4); });
+  const MODELS = {
+    stele: model((b) => { b(6, 9, 0, 17, 2, 13); b(6, 9, 18, 19, 4, 11); b(6, 9, 20, 20, 6, 9); b(4, 11, 0, 1, 1, 14); }),
+    soul: model((b) => { soul(b); b(10, 15, 0, 10, 3, 12); }),
+    lion: model(lion),
+    hart: model((b) => { b(3, 11, 9, 14, 5, 10); for (const x of [3, 10]) for (const z of [5, 9]) b(x, x + 1, 0, 8, z, z + 1); b(10, 12, 13, 18, 6, 9); b(11, 15, 17, 20, 6, 9);
+      for (const [z, o] of [[6, -1], [9, 1]]) { b(12, 12, 21, 23, z, z); b(11, 13, 22, 22, z + o, z + o); b(13, 13, 23, 23, z + o, z + o); b(11, 11, 23, 23, z + 2 * o, z + 2 * o); b(12, 12, 21, 21, z + 2 * o, z + 3 * o); b(12, 12, 22, 23, z + 3 * o, z + 3 * o); }
+      b(1, 2, 12, 14, 7, 8); b(0, 1, 15, 17, 6, 9); b(1, 2, 18, 20, 7, 8); b(0, 1, 21, 22, 7, 8); b(2, 2, 22, 23, 8, 8); }),
+    serpent: model((b) => { b(2, 13, 0, 2, 2, 13); b(5, 10, 0, 2, 5, 10, 0); b(4, 11, 3, 5, 4, 11); b(7, 8, 3, 5, 7, 8, 0); b(7, 9, 6, 9, 7, 9); b(8, 10, 10, 13, 7, 9); b(9, 11, 14, 16, 7, 9); b(9, 14, 17, 19, 5, 11); b(15, 15, 17, 17, 7, 9); b(14, 14, 19, 19, 5, 5, 0); b(14, 14, 19, 19, 11, 11, 0); }),
+    flame: model((b) => { b(4, 11, 0, 4, 4, 11); b(5, 10, 5, 9, 5, 11); b(6, 10, 10, 14, 5, 9); b(7, 9, 15, 18, 6, 8); b(5, 6, 13, 17, 9, 10); b(10, 11, 8, 12, 4, 5); b(8, 8, 19, 22, 7, 7); b(5, 5, 18, 20, 9, 9); }),
+    icelion: sunk(lion), icesoul: sunk(soul)
   };
-  const SIZE = { stele: [1.25, 0], shade: [1.3, 0], weight: [1.05, 0], flame: [1.15, .12], serpent: [1.25, 0], ice: [.85, 0] };
+  const SIZE = { stele: [1.4, 0], soul: [1.5, 0], lion: [1.7, 0], hart: [1.7, 0], serpent: [1.5, 0], flame: [1.4, .1], icelion: [1.5, 0], icesoul: [1.5, 0] };
   const FRAMES = {};
-  for (const k in SHAPE) FRAMES[k] = [0, 1, 2, 3].map((f) => {
-    const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d");
-    g.fillStyle = "#000"; g.strokeStyle = "#fff"; g.lineWidth = 1.8; g.lineJoin = "round"; SHAPE[k](g, f);
-    const d = g.getImageData(0, 0, 64, 64).data, o = new Uint8Array(4096);
-    for (let i = 0; i < 4096; i++) o[i] = d[i * 4 + 3] < 90 ? 0 : Math.max(1, d[i * 4]);   // 0 is nothing; 1 is the black body
+  for (const k in MODELS) FRAMES[k] = [0, 1, 2, 3, 4, 5, 6, 7].map((q) => {
+    const d = MODELS[k], a = q * Math.PI / 4, ca = Math.cos(a), sa = Math.sin(a), sc = 2.5, N = 64, dep = new Float32Array(N * N).fill(1e9), fid = new Int32Array(N * N).fill(-1), tone = new Uint8Array(N * N);
+    const get = (x, y, z) => x < 0 || y < 0 || z < 0 || x >= VX || y >= VY || z >= VZ ? 0 : d[(y * VZ + z) * VX + x];
+    const plot = (px, py, pz, id, tn) => { const X = px - 8, Z = pz - 8, near = X * ca + Z * sa, sx = Math.round(32 + (-sa * X + ca * Z) * sc), sy = Math.round(57 - py * sc + near * sc * .25); if (sx < 0 || sy < 0 || sx >= N || sy >= N) return; const i = sy * N + sx; if (-near < dep[i]) { dep[i] = -near; fid[i] = id; tone[i] = tn; } };
+    for (let y = 0; y < VY; y++) for (let z = 0; z < VZ; z++) for (let x = 0; x < VX; x++) {
+      if (!get(x, y, z)) continue;
+      for (let t = 0; t <= 1; t += .25) for (let r = 0; r <= 1; r += .25) {
+        if (!get(x, y + 1, z)) plot(x + t, y + 1, z + r, 4096 + y, 120);
+        if (ca > .01 && !get(x + 1, y, z)) plot(x + 1, y + t, z + r, 8192 + x, 60);
+        if (ca < -.01 && !get(x - 1, y, z)) plot(x, y + t, z + r, 12288 + x, 60);
+        if (sa > .01 && !get(x, y, z + 1)) plot(x + t, y + r, z + 1, 16384 + z, 26);
+        if (sa < -.01 && !get(x, y, z - 1)) plot(x + t, y + r, z, 20480 + z, 26);
+      }
+    }
+    const o = new Uint8Array(N * N);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const i = y * N + x; if (fid[i] < 0) continue; const e = (j) => j < 0 || j >= N * N || fid[j] !== fid[i] || Math.abs(dep[j] - dep[i]) > 1.6; o[i] = e(i - 1) || e(i + 1) || e(i - N) || e(i + N) ? 255 : tone[i]; }
     return o;
   });
 
@@ -640,7 +668,7 @@ const infernus = (function () {
      set plan taken from Dante's buildings; every other chamber is put together from
      parts, and never the same way as the one before it. */
   const WALLH = 2.4, DEEP = -6, STEP = .32, EYE = .75;
-  const HH = new Float32Array(MW * MH).fill(WALLH), SR = new Float32Array(MW * MH), SD = new Uint8Array(MW * MH), FT = new Uint8Array(MW * MH), CH = new Float32Array(MW * MH).fill(99), CT = new Uint8Array(MW * MH), DG = new Uint8Array(MW * MH), ST = new Uint8Array(MW * MH), SB = new Float32Array(MW * MH), RV = new Uint8Array(MW * MH), AR = new Uint8Array(MW * MH), AB = new Float32Array(MW * MH), RL = new Uint16Array(MW * MH), GT = new Uint8Array(MW * MH), TW = new Float32Array(MW * MH).fill(-1), WL = new Float32Array(MW * MH).fill(-99), FL = new Uint8Array(MW * MH).fill(255);
+  const HH = new Float32Array(MW * MH).fill(WALLH), SR = new Float32Array(MW * MH), SD = new Uint8Array(MW * MH), FT = new Uint8Array(MW * MH), CH = new Float32Array(MW * MH).fill(99), CT = new Uint8Array(MW * MH), DG = new Uint8Array(MW * MH), ST = new Uint8Array(MW * MH), SB = new Float32Array(MW * MH), RV = new Uint8Array(MW * MH), AR = new Uint8Array(MW * MH), AB = new Float32Array(MW * MH), RL = new Uint16Array(MW * MH), H2 = new Float32Array(MW * MH).fill(-99), GT = new Uint8Array(MW * MH), TW = new Float32Array(MW * MH).fill(-1), WL = new Float32Array(MW * MH).fill(-99), FL = new Uint8Array(MW * MH).fill(255);
   const wfAt = (c, fx, fy) => { const x = c % MW, id = x / S | 0, f = chunks[id].wf; if (!f) return 9; const gx = Math.min(127.99, (x - id * S + fx) * 8), gy = Math.min(127.99, ((c / MW | 0) + fy) * 8), ix = gx | 0, iy = gy | 0, tx = gx - ix, ty = gy - iy, i = iy * 129 + ix; return (f.sd[i] * (1 - tx) + f.sd[i + 1] * tx) * (1 - ty) + (f.sd[i + 129] * (1 - tx) + f.sd[i + 130] * tx) * ty; };
   const wfFl = (c, fx, fy) => { const x = c % MW, id = x / S | 0; return chunks[id].wf.fl[Math.round(((c / MW | 0) + fy) * 8) * 129 + Math.round((x - id * S + fx) * 8)]; };
   const slabAt = new Map(), slabs = [], SLB = new Uint8Array(MW * MH), MI = new Uint8Array(MW * MH);
@@ -652,9 +680,12 @@ const infernus = (function () {
   };
   const gr = (c, fx, fy) => { const h = gb(c, fx, fy); if (RV[c] && h < 40) { const sd = wfAt(c, fx, fy); if (sd < 0) return h - Math.min(.9, -sd * 1.4); } return h; };   // where you stand: under water, the bed
   const archH = (c, wx, wy) => { const s = (AR[c] === 1 ? wx - ((c % MW) / S | 0) * S : wy) - 8; return AB[c] + 1.15 + .95 * Math.sqrt(Math.max(0, 1 - s * s)); };      // one arch for the whole doorway, measured from the door's own floor
+  // where a cell has an upper floor (H2) over its ceiling (CH), you stand on whichever you are level with
+  const gp = (c, fx, fy, f) => H2[c] > -90 && f >= H2[c] - STEP - .05 ? H2[c] : gr(c, fx, fy);
   const chunks = [], sprites = [], pending = {}, made = {}, fixed = {};
   let total = 0;
-  for (const st of ["vas", "index"]) REGISTRUM[st].records.forEach((r, n) => { const fm = FORM[r.kind]; if (!fm) return; (pending[fm[1]] ||= []).push({ form: fm[0], store: st, r, n }); total++; });
+  for (const st of ["vas", "index"]) REGISTRUM[st].records.forEach((r, n) => { const fm = FORM[r.kind]; if (!fm) return; const who = String(r.author || r.seal || "").toLowerCase(), named = who.includes("marbas") ? "lion" : who.includes("furfur") ? "hart" : null;
+    (pending[fm[1]] ||= []).push({ form: r.kind === "damn" ? (named === "lion" ? "icelion" : "icesoul") : r.kind === "words" && named ? named : fm[0], store: st, r, n, face: (hash2(n, 91) & 7) * Math.PI / 4 }); total++; });
   const doorCells = (d) => d === 0 ? [[15, 7], [15, 8]] : d === 1 ? [[7, 15], [8, 15]] : d === 2 ? [[0, 7], [0, 8]] : [[7, 0], [8, 0]];
   const DROP = { same: 0, loop: 0, secret: 0, back: 0, ledge: 0, scale: 0, down: 1.5, deep: 3, up: -1.5 };
   const RING = [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [5, 1], [5, 2], [5, 3], [5, 4], [5, 5], [4, 5], [3, 5], [2, 5], [1, 5], [0, 5], [0, 4], [0, 3], [0, 2], [0, 1]];
@@ -663,14 +694,14 @@ const infernus = (function () {
      2 the endless rain on the gluttons (VI), 3 the flakes of fire that fall on the burning sand (XIV), 4 the wind off the ice (XXXIV)).
      [O] The second circle is dressed as a house of ill repute: booths behind hangings, lattice screens, couches, a bath. */
   const THEME = [
-    { st: 1, mods: ["open", "open", "terrace", "mound", "maze", "tombs", "sunken", "solid", "penrose"], fx: 0 },
-    { st: 8, mods: ["cribs", "cribs", "cribs", "bath", "open", "terrace", "maze", "solid"], fx: 1 },
+    { st: 1, mods: ["open", "open", "terrace", "mound", "maze", "tombs", "sunken", "solid", "penrose", "gallery", "bridge"], fx: 0 },
+    { st: 8, mods: ["cribs", "cribs", "cribs", "bath", "open", "terrace", "maze", "solid", "gallery"], fx: 1 },
     { st: 2, mods: ["sunken", "sunken", "tombs", "open", "pit", "mound", "solid", "maze"], fx: 2 },
-    { st: 4, mods: ["mound", "mound", "tombs", "terrace", "open", "maze", "tower", "solid", "penrose", "twist"], fx: 0 },
+    { st: 4, mods: ["mound", "mound", "tombs", "terrace", "open", "maze", "tower", "solid", "penrose", "twist", "gallery", "bridge"], fx: 0 },
     { st: 2, mods: ["sunken", "open", "catwalk", "tower", "mound", "pit", "solid", "terrace", "twist"], fx: 0 },
     { st: 4, mods: ["tombs", "tombs", "tower", "terrace", "open", "pit", "maze", "solid"], fx: 0 },
     { st: 0, mods: ["thorns", "thorns", "shaft", "pit", "open", "mound", "catwalk", "terrace"], fx: 3 },
-    { st: 0, mods: ["shaft", "catwalk", "pit", "sunken", "terrace", "tombs", "tower", "maze", "penrose", "twist"], fx: 0 },
+    { st: 0, mods: ["shaft", "catwalk", "pit", "sunken", "terrace", "tombs", "tower", "maze", "penrose", "twist", "bridge", "gallery"], fx: 0 },
     { st: 5, mods: ["open", "open", "pit", "mound", "sunken", "solid", "catwalk", "shaft", "twist"], fx: 4 }];
   const SO = new Uint8Array(MW * MH);          // a cell's own stone, where it differs from its chamber's
   const SWH = [3.6, 4.8, 2.4, 3.6, 2.4, 4.8, 3.6, 2.4, 4.8];
@@ -683,7 +714,7 @@ const infernus = (function () {
     const ch = { id, circle, kind, seed, dry, doors: [null, null, null, null], fall: null, sig: "", land: null, born: performance.now(), fd: 1 };
     chunks.push(ch);
     const wt = 0;
-    for (let ly = 0; ly < S; ly++) for (let lx = 0; lx < S; lx++) { const c = at(ox + lx, ly); HH[c] = WALLH; M[c] = 1; SD[c] = 0; SR[c] = 0; FT[c] = 0; CH[c] = 99; CT[c] = 0; DG[c] = 0; WL[c] = -99; FL[c] = 255; SB[c] = 0; RV[c] = 0; AR[c] = 0; SO[c] = 0; TW[c] = -1; RL[c] = 0; GT[c] = 0; T[c] = wt; TS[c] = 0; SP[c] = -1; }
+    for (let ly = 0; ly < S; ly++) for (let lx = 0; lx < S; lx++) { const c = at(ox + lx, ly); HH[c] = WALLH; M[c] = 1; SD[c] = 0; SR[c] = 0; FT[c] = 0; CH[c] = 99; CT[c] = 0; DG[c] = 0; WL[c] = -99; FL[c] = 255; SB[c] = 0; RV[c] = 0; AR[c] = 0; SO[c] = 0; TW[c] = -1; RL[c] = 0; GT[c] = 0; H2[c] = -99; T[c] = wt; TS[c] = 0; SP[c] = -1; }
     // everything below is drawn as if you came in by the north door, then turned to the door you did come by
     const R = (x, y) => { for (let i = 0; i < q; i++) { const t = x; x = 15 - y; y = t; } return at(ox + x, y); };
     const put = (x, y, h, ft, sd, sr) => { const c = R(x, y); HH[c] = h; M[c] = h === WALLH ? 1 : 0; FT[c] = ft || 0; SD[c] = sd == null ? 0 : (sd + q) % 4 + 1; SR[c] = sr || 0; return c; };
@@ -733,6 +764,10 @@ const infernus = (function () {
         portal.set(a * 4 + d, [0, 0, -5, 1]); portal.set(b * 4 + (d + 2) % 4, [0, 0, 5, 1]); return null; },
       // [O] after Escher's Relativity and the Moebius strip: a passage that turns you over as you walk it, so you come out with floor and roof changed places
       twist: (qi) => { ch.low = ch.low || []; [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [5, 1], [5, 2], [5, 3], [5, 4], [5, 5], [4, 5], [3, 5], [2, 5], [1, 5], [0, 5]].forEach(([u, v], i) => { const c = qs(qi, u, v, 0); TW[c] = i / 15; ch.low.push(c); }); return null; },
+      // a room above a room: an undercroft on the ground, a gallery over it reached by the stair along its side
+      gallery: (qi) => { ch.slabs = ch.slabs || []; each((u, v) => { const c = qs(qi, u, v, v === 0 ? .27 * (u + 1) : 0); if (u >= 1 && v >= 1) ch.slabs.push(c); }); for (const [u, v] of [[1, 1], [5, 5], [1, 5]]) qs(qi, u, v, WALLH); return Qm[qi](3, 3); },
+      // a terrace with a bridge thrown from it over the way beside: you walk under it, and over it
+      bridge: (qi) => { ch.slabs = ch.slabs || []; each((u, v) => qs(qi, u, v, v === 0 ? .27 * (u + 1) : u === 0 ? 0 : 1.62)); for (let v = 2; v <= 4; v++) for (const u of [0, -1, -2]) { const [x, y] = Qm[qi](u, v), c = R(x, y); if (!SD[c] && HH[c] === 0 && M[c] === 0) ch.slabs.push(c); } return null; },
       solid: () => null
     };
     const SETP = [    // the set plans, one for each circle [O], after Dante's buildings [S]
@@ -920,6 +955,7 @@ const infernus = (function () {
     if (roof) for (let cd = 0; cd < 4; cd++) if (ch.doors[A(cd)] || (cd === 3 && entry >= 0)) for (const [x, y] of armCells(cd, 6)) { const c = R(x, y); if (M[c] !== 1) { CT[c] = 1; AR[c] = A(cd) & 1 ? 1 : 2; AB[c] = ch.doors[A(cd)] ? ch.doors[A(cd)].h : 0; } }   // the passage through the wall is a low vault
     for (let ly = 0; ly < S; ly++) for (let lx = 0; lx < S; lx++) { const c = at(ox + lx, ly); if (AR[c]) { CT[c] = 1; CH[c] = AB[c] + 2.1; } }
     if (ch.drapes) for (const c of ch.drapes) { CT[c] = 1; CH[c] = HH[c] + 1.25; }
+    if (ch.slabs) for (const c of ch.slabs) if (M[c] !== 1) { CT[c] = 1; CH[c] = 1.5; H2[c] = 1.62; }      // the floor between the two storeys
     if (ch.low) for (const c of ch.low) { CT[c] = 1; CH[c] = HH[c] + 1.5; }      // the twisting passage is a close tube, its roof as near as its floor      // a hanging comes down to head height
     if (ch.fall) { let n = 0, px = 0, py = 0; for (let ly = 1; ly < 15; ly++) for (let lx = 1; lx < 15; lx++) if (HH[at(ox + lx, ly)] <= DEEP) { n++; px += ox + lx + .5; py += ly + .5; } ch.pit = n ? [px / n, py / n] : [ox + 8, 8]; }
     if (roof === 2) for (const dd of ch.doors) if (dd && dd.slab && (dd.slab.sv === 1 || dd.slab.sv === 2 || dd.slab.sv === 4)) dd.slab.sv = 0;      // no bookcases in caves
@@ -1009,7 +1045,7 @@ const infernus = (function () {
       const tx = Math.floor(qx), ty = Math.floor(qy);
       if (tx < 0 || ty < 0 || tx >= MW || ty >= MH || (!pd && (tx / S | 0) !== (cx / S | 0))) continue;
       const c = at(tx, ty);
-      if (M[c] === 5 || gr(c, qx - tx, qy - ty) - (P.f + dz) > (swim ? .62 : STEP * P.s)) continue;
+      if (M[c] === 5 || gp(c, qx - tx, qy - ty, P.f + dz) - (P.f + dz) > (swim ? .62 : STEP * P.s)) continue;
       if (ax) P.y += d; else P.x += d;
       if (Math.floor(ax ? P.y : P.x) !== (ax ? cy : cx)) { const p2 = portal.get(at(cx, cy) * 4 + dir); if (p2) { P.x += p2[0]; P.y += p2[1]; P.f += p2[2]; P.fv += p2[2]; if (p2[3] && p2[3] !== 1) P.sT = Math.min(2, Math.max(.5, P.sT * p2[3])); } }
     }
@@ -1042,7 +1078,8 @@ const infernus = (function () {
       P.s += (P.sT - P.s) * Math.min(1, dt * 1.2);
       const v = 3.1 * dt * Math.pow(P.s, .6) * (swim ? .5 : 1), ca = Math.cos(P.a), sa = Math.sin(P.a);
       move((ca * f - sa * s) * v, (sa * f + ca * s) * v);
-      const cx = Math.floor(P.x), cy = Math.floor(P.y), c0 = at(cx, cy), wl = RV[c0] && wfAt(c0, P.x - cx, P.y - cy) < 0 ? gb(c0, P.x - cx, P.y - cy) - .03 : WL[c0]; let gh = gr(at(cx, cy), P.x - cx, P.y - cy);
+      const cx = Math.floor(P.x), cy = Math.floor(P.y), c0 = at(cx, cy), wl = RV[c0] && wfAt(c0, P.x - cx, P.y - cy) < 0 ? gb(c0, P.x - cx, P.y - cy) - .03 : WL[c0]; let gh = gp(c0, P.x - cx, P.y - cy, P.f);
+      if (H2[c0] > -90 && gh < H2[c0] && P.f + .8 * P.s > CH[c0]) { P.f = Math.max(gh, CH[c0] - .8 * P.s); P.vz = Math.min(P.vz, 0); }      // your head meets the floor above
       swim = wl > -90 && wl - gh >= .5 && P.f <= wl; if (swim) gh = wl - .5 + .03 * Math.sin(t / 320);      // where it is deep enough you float and swim, slowly
       if (grounded && !swim && keys.has("Space")) { P.vz = 3.1 * Math.sqrt(P.s); grounded = false; }
       if (grounded && P.f - gh < .36 * P.s) P.f = gh;                       // keep to the ground down ramps and small steps
@@ -1149,6 +1186,10 @@ const infernus = (function () {
         const c = my * MW + mx, side = sdx < sdy ? 0 : 1; let dOut = side ? sdy : sdx, cut = 0;
         if (DG[c]) { const ax = P.x + ox - mx, ay = P.y + oy - my, den = DG[c] & 1 ? rx + ry : rx - ry, tt = DG[c] & 1 ? (1 - ax - ay) / den : (ay - ax) / den; if (tt > dIn + 1e-4 && tt < dOut - 1e-4) cut = dOut = tt; }
         let ex = P.x + ox + dOut * rx, ey = P.y + oy + dOut * ry;
+        if (H2[c] > -90 && zr > H2[c]) {          // an upper floor seen from above; it hides what is under it
+          const q2 = (zr - H2[c]) * K, dU = Math.max(dIn, .03);
+          for (let y = Math.max(hor + 1, Math.ceil(hor + q2 / dOut)); y <= Math.min(H - 1, hor + q2 / dU); y++) { const j = y * W + x; if (done[j]) continue; done[j] = 1; const d = q2 / (y - hor); buf[j] = mist(flags(P.x + ox + d * rx, P.y + oy + d * ry, Math.max(.035, d * .009)) * 255, d); }
+        }
         const mi = MI[c]; MV = 0;
         const hout = cut ? Math.max(HH[c], WL[c]) : SLB[c] ? HH[c] : gw(c, Math.min(1, Math.max(0, ex - mx)), Math.min(1, Math.max(0, ey - my)));
         if (SP[c] >= 0) {                          // a record standing in this cell
@@ -1157,7 +1198,7 @@ const infernus = (function () {
             const u = (dep * cam * PL - (qx * px + qy * py) / PL) / .8 + .5;
             if (u >= 0 && u < 1) {
               if (x === mid && dep < 2.6 && !target) target = s;
-              const sz = SIZE[s.form], base = HH[c] + sz[1], top = hor - (base + sz[0] - zr) * K / dep, bot = hor - (base - zr) * K / dep, tx = Math.floor(u * 64), F = FRAMES[s.form][(fr + s.n) % 4];
+              const sz = SIZE[s.form], base = HH[c] + sz[1], top = hor - (base + sz[0] - zr) * K / dep, bot = hor - (base - zr) * K / dep, tx = Math.floor(u * 64), F = FRAMES[s.form][Math.round((Math.atan2(-qy, -qx) - s.face) / (Math.PI / 4)) & 7];
               const fall = Math.min(1, 2.6 / (1 + .16 * dep * dep)) * 255 * FD;
               for (let y = Math.max(0, Math.ceil(top)); y <= Math.min(H - 1, bot); y++) { const p = F[Math.min(63, Math.floor((y - top) / (bot - top) * 64)) * 64 + tx], j = y * W + x; if (p && !done[j]) { done[j] = 1; buf[j] = p === 1 ? 0 : p / 255 * fall; } }
             }
@@ -1223,7 +1264,11 @@ const infernus = (function () {
           }
         }
         const cn = AR[n] ? archH(n, ex, ey) : CH[n], lxn = mx % S, rimN = lxn === 0 || lxn === S - 1 || my === 0 || my === S - 1;
-        if (M[n] !== 1 && cn < hcb - .01 && !(AR[c] && AR[n])) {      // a face hanging down: the wall over a doorway, a lower vault
+        if (H2[n] > -90 && M[n] !== 1) {          // the edge of the floor between two storeys
+          const lo2 = H2[c] > -90 ? Math.max(CH[n], H2[c] + (pd ? pd[2] : 0)) : CH[n];
+          if (H2[n] > lo2 + .01) { let u = side ? ex : ey; u -= Math.floor(u); face(x, dOut, lo2, H2[n], zr, n, u, side ? .8 : 1, hor, K, 0, side ? ex : ey, ex, ey); }
+        }
+        if (M[n] !== 1 && cn < hcb - .01 && !(AR[c] && AR[n]) && !(H2[n] > -90)) {      // a face hanging down: the wall over a doorway, a lower vault
           let u = side ? ex : ey; u -= Math.floor(u); if ((!side && rx < 0) || (side && ry > 0)) u = 1 - u;
           face(x, dOut, cn, hcb < 90 ? hcb : rimN ? zr + 60 : Math.max(cn + .5, chunks[mx / S | 0].wh), zr, n, u, side ? .8 : 1, hor, K, SB[n], side ? ex : ey, ex, ey);
         }
@@ -1269,7 +1314,7 @@ const infernus = (function () {
   addEventListener("pointermove", (e) => { if (on && !reading && (document.pointerLockElement === cv || drag)) { P.a += e.movementX * .0032 * (Math.cos(P.roll * Math.PI / 180) < 0 ? -1 : 1); P.p = Math.max(-.85, Math.min(.85, P.p - e.movementY * .0022)); } });
   addEventListener("resize", () => { if (on) size(); });
   requestAnimationFrame(frame);
-  return { enter, leave, P, sprites, chunks, S, MW, HH, CH, WL, TW, M, gr, at, unfold, get on() { return on; } };
+  return { enter, leave, P, sprites, chunks, S, MW, HH, CH, H2, WL, TW, M, gr, at, unfold, get on() { return on; } };
 })();
 
 $("state").innerHTML = REGISTRUM.sample

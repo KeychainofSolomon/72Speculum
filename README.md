@@ -53,3 +53,11 @@ The real program opens only outside a session, with the wand present. It is read
 - [O] Annulus's own: the ornate oval mirror (the attested Solomonic mirrors are plain steel), which record takes which shape and circle, and the folding of the paths.
 
 Public domain (see `UNLICENSE`).
+
+## Storeys and figures (latest)
+
+- **Rooms above rooms.** A cell can now hold two floors: an undercroft on the ground and a gallery over it, reached by a stair along its side. Bridges are thrown from terraces over the way beside them, so you walk under and over the same spot.
+- **Figures built of blocks.** The shapes that stand for records are now small block models with flat grey facets and bright edges, drawn from eight sides so you can walk round them.
+  - [S] Where a record names its spirit, the shape is that spirit's as the Goetia gives it (Sloane 3825): Marbas a great lion, Furfur a hart with a fiery tail.
+  - [O] Voided work is a soul pushing a weight, an intruder's input a coiled serpent, history a standing stone, and the damned are sunk to the chest in ice.
+  - These are effigies standing for a record. The spec's rule that the mirror shows record, never a spirit, is unchanged.
