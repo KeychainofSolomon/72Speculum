@@ -26,6 +26,12 @@ The mirror (`speculum`) of [Annulus](https://github.com/KeychainofSolomon/Annulu
   - **Signs:** the walls carry none but the words over the Gate, the stars at the way out, and the numeral of the circle a door leads to.
   - **Stone:** wall patterns are worked out from each point's place and height, so courses run level through a whole chamber, joints break bond, and rock strata follow round corners.
   - **Doorways:** every door is one real arch across its whole width, standing open from the first. Past a door whose far side is not yet made there is only the dark; when it is made, the chamber beyond comes up out of the dark over a few seconds.
+  - **Hidden ways:** what hides one is a slab of the wall, a case of books or a figure in a niche, which slides aside when you press E; or a wall that is not there at all, which wavers like water as you come near and lets you walk through.
+  - **The Gate and the way out:** the Gate stands shut in a deep arch with Dante's words on its leaves; the way out is three open arches onto the stars.
+  - **Falls:** where the river goes over a ledge it falls as a waterfall, with mist at its foot. On slopes the river keeps its banks and runs down them.
+  - **Pits:** the floor of a pit shows the chamber you will fall into, seen from above, and after a fall the place comes up out of the dark.
+  - **Each circle's look:** its own stone, its own kinds of chamber, and its own air: the storm wind of the lustful, the rain on the gluttons, the flakes of fire in the seventh circle, the wind off the ice. The second circle is dressed as a house of ill repute: booths behind hangings, lattice screens, couches, a bath, swags on the walls.
+  - **Safeguards:** nothing but a doorway may open a chamber's outer wall; a door the chamber cannot reach is walled up again; the wall over an outer doorway rises out of sight; one arch is measured for a whole doorway so its two halves and its passage always meet.
   - **Not shown in this build:** Purgatory's entries (the suspected and the proscribed). The plain register still lists them.
 - **Read plainly:** the same records as a plain register.
 
