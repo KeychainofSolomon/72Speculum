@@ -637,7 +637,7 @@ const infernus = (function () {
      set plan taken from Dante's buildings; every other chamber is put together from
      parts, and never the same way as the one before it. */
   const WALLH = 2.4, DEEP = -6, STEP = .32, EYE = .75;
-  const HH = new Float32Array(MW * MH).fill(WALLH), SR = new Float32Array(MW * MH), SD = new Uint8Array(MW * MH), FT = new Uint8Array(MW * MH), CH = new Float32Array(MW * MH).fill(99), CT = new Uint8Array(MW * MH), DG = new Uint8Array(MW * MH), ST = new Uint8Array(MW * MH), SB = new Float32Array(MW * MH), RV = new Uint8Array(MW * MH), AR = new Uint8Array(MW * MH), AB = new Float32Array(MW * MH), WL = new Float32Array(MW * MH).fill(-99), FL = new Uint8Array(MW * MH).fill(255);
+  const HH = new Float32Array(MW * MH).fill(WALLH), SR = new Float32Array(MW * MH), SD = new Uint8Array(MW * MH), FT = new Uint8Array(MW * MH), CH = new Float32Array(MW * MH).fill(99), CT = new Uint8Array(MW * MH), DG = new Uint8Array(MW * MH), ST = new Uint8Array(MW * MH), SB = new Float32Array(MW * MH), RV = new Uint8Array(MW * MH), AR = new Uint8Array(MW * MH), AB = new Float32Array(MW * MH), TW = new Float32Array(MW * MH).fill(-1), WL = new Float32Array(MW * MH).fill(-99), FL = new Uint8Array(MW * MH).fill(255);
   const wfAt = (c, fx, fy) => { const x = c % MW, id = x / S | 0, f = chunks[id].wf; if (!f) return 9; const gx = Math.min(127.99, (x - id * S + fx) * 8), gy = Math.min(127.99, ((c / MW | 0) + fy) * 8), ix = gx | 0, iy = gy | 0, tx = gx - ix, ty = gy - iy, i = iy * 129 + ix; return (f.sd[i] * (1 - tx) + f.sd[i + 1] * tx) * (1 - ty) + (f.sd[i + 129] * (1 - tx) + f.sd[i + 130] * tx) * ty; };
   const wfFl = (c, fx, fy) => { const x = c % MW, id = x / S | 0; return chunks[id].wf.fl[Math.round(((c / MW | 0) + fy) * 8) * 129 + Math.round((x - id * S + fx) * 8)]; };
   const slabAt = new Map(), slabs = [], SLB = new Uint8Array(MW * MH), MI = new Uint8Array(MW * MH);
@@ -660,15 +660,15 @@ const infernus = (function () {
      2 the endless rain on the gluttons (VI), 3 the flakes of fire that fall on the burning sand (XIV), 4 the wind off the ice (XXXIV)).
      [O] The second circle is dressed as a house of ill repute: booths behind hangings, lattice screens, couches, a bath. */
   const THEME = [
-    { st: 1, mods: ["open", "open", "terrace", "mound", "maze", "tombs", "sunken", "solid"], fx: 0 },
+    { st: 1, mods: ["open", "open", "terrace", "mound", "maze", "tombs", "sunken", "solid", "penrose"], fx: 0 },
     { st: 8, mods: ["cribs", "cribs", "cribs", "bath", "open", "terrace", "maze", "solid"], fx: 1 },
     { st: 2, mods: ["sunken", "sunken", "tombs", "open", "pit", "mound", "solid", "maze"], fx: 2 },
-    { st: 4, mods: ["mound", "mound", "tombs", "terrace", "open", "maze", "tower", "solid"], fx: 0 },
-    { st: 2, mods: ["sunken", "open", "catwalk", "tower", "mound", "pit", "solid", "terrace"], fx: 0 },
+    { st: 4, mods: ["mound", "mound", "tombs", "terrace", "open", "maze", "tower", "solid", "penrose", "twist"], fx: 0 },
+    { st: 2, mods: ["sunken", "open", "catwalk", "tower", "mound", "pit", "solid", "terrace", "twist"], fx: 0 },
     { st: 4, mods: ["tombs", "tombs", "tower", "terrace", "open", "pit", "maze", "solid"], fx: 0 },
     { st: 0, mods: ["thorns", "thorns", "shaft", "pit", "open", "mound", "catwalk", "terrace"], fx: 3 },
-    { st: 0, mods: ["shaft", "catwalk", "pit", "sunken", "terrace", "tombs", "tower", "maze"], fx: 0 },
-    { st: 5, mods: ["open", "open", "pit", "mound", "sunken", "solid", "catwalk", "shaft"], fx: 4 }];
+    { st: 0, mods: ["shaft", "catwalk", "pit", "sunken", "terrace", "tombs", "tower", "maze", "penrose", "twist"], fx: 0 },
+    { st: 5, mods: ["open", "open", "pit", "mound", "sunken", "solid", "catwalk", "shaft", "twist"], fx: 4 }];
   const SO = new Uint8Array(MW * MH);          // a cell's own stone, where it differs from its chamber's
   const SWH = [3.6, 4.8, 2.4, 3.6, 2.4, 4.8, 3.6, 2.4, 4.8];
   const Qm = [(u, v) => [6 - u, 6 - v], (u, v) => [9 + u, 6 - v], (u, v) => [9 + u, 9 + v], (u, v) => [6 - u, 9 + v]];
@@ -680,7 +680,7 @@ const infernus = (function () {
     const ch = { id, circle, kind, seed, dry, doors: [null, null, null, null], fall: null, sig: "", land: null, born: performance.now(), fd: 1 };
     chunks.push(ch);
     const wt = 0;
-    for (let ly = 0; ly < S; ly++) for (let lx = 0; lx < S; lx++) { const c = at(ox + lx, ly); HH[c] = WALLH; M[c] = 1; SD[c] = 0; SR[c] = 0; FT[c] = 0; CH[c] = 99; CT[c] = 0; DG[c] = 0; WL[c] = -99; FL[c] = 255; SB[c] = 0; RV[c] = 0; AR[c] = 0; SO[c] = 0; T[c] = wt; TS[c] = 0; SP[c] = -1; }
+    for (let ly = 0; ly < S; ly++) for (let lx = 0; lx < S; lx++) { const c = at(ox + lx, ly); HH[c] = WALLH; M[c] = 1; SD[c] = 0; SR[c] = 0; FT[c] = 0; CH[c] = 99; CT[c] = 0; DG[c] = 0; WL[c] = -99; FL[c] = 255; SB[c] = 0; RV[c] = 0; AR[c] = 0; SO[c] = 0; TW[c] = -1; T[c] = wt; TS[c] = 0; SP[c] = -1; }
     // everything below is drawn as if you came in by the north door, then turned to the door you did come by
     const R = (x, y) => { for (let i = 0; i < q; i++) { const t = x; x = 15 - y; y = t; } return at(ox + x, y); };
     const put = (x, y, h, ft, sd, sr) => { const c = R(x, y); HH[c] = h; M[c] = h === WALLH ? 1 : 0; FT[c] = ft || 0; SD[c] = sd == null ? 0 : (sd + q) % 4 + 1; SR[c] = sr || 0; return c; };
@@ -725,6 +725,11 @@ const infernus = (function () {
       cribs: (qi) => { ch.drapes = ch.drapes || []; for (let v = 0; v < 6; v++) { qs(qi, 0, v, 0); if (v % 2) { for (let u = 1; u < 6; u++) SO[qs(qi, u, v, WALLH)] = 7; continue; } for (let u = 1; u < 5; u++) qs(qi, u, v, 0); qs(qi, 4, v, .3); const c = qs(qi, 1, v, 0); SO[c] = 6; ch.drapes.push(c); } return Qm[qi](3, 2); },   // booths behind hangings, a couch in each, lattice between
       bath: (qi) => { each((u, v) => { if (u === 0 || v === 0) qs(qi, u, v, 0); else if (u === 5 || v === 5) qs(qi, u, v, .3); else WL[qs(qi, u, v, -.5)] = -.2; }); return null; },                                                                                                    // a sunk bath with a bench round it
       thorns: (qi) => { each((u, v) => qs(qi, u, v, u % 2 && v % 2 && rnd() < .75 ? WALLH : 0)); return Qm[qi](4, 4); },                                                                                                                                                              // the wood of the suicides: close trunks, no path (XIII)
+      // [O] after Escher's Ascending and Descending: a stair round a block that climbs all the way round and comes back to its own first step
+      penrose: (qi) => { each((u, v) => qs(qi, u, v, WALLH)); const cs = RING.map(([u, v], i) => qs(qi, u, v, .25 * (i + 1))), a = cs[19], b = cs[0], d = b - a === 1 ? 0 : b - a === -1 ? 2 : b - a === MW ? 1 : 3;
+        portal.set(a * 4 + d, [0, 0, -5, 1]); portal.set(b * 4 + (d + 2) % 4, [0, 0, 5, 1]); return null; },
+      // [O] after Escher's Relativity and the Moebius strip: a passage that turns you over as you walk it, so you come out with floor and roof changed places
+      twist: (qi) => { ch.low = ch.low || []; [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [5, 1], [5, 2], [5, 3], [5, 4], [5, 5], [4, 5], [3, 5], [2, 5], [1, 5], [0, 5]].forEach(([u, v], i) => { const c = qs(qi, u, v, 0); TW[c] = i / 15; ch.low.push(c); }); return null; },
       solid: () => null
     };
     const SETP = [    // the set plans, one for each circle [O], after Dante's buildings [S]
@@ -782,7 +787,7 @@ const infernus = (function () {
       if (after) after();
     }
     // how high the walls stand, and the roof where there is one: 1 a built ceiling, 2 a cavern, 3 rafters; 0 is open dark
-    const tall = ch.sig.includes("tower"), set = ch.sig.startsWith("set");
+    const tall = ch.sig.includes("tower") || ch.sig.includes("penrose"), set = ch.sig.startsWith("set");
     const wh = ch.wh = kind !== "room" ? 3.6 : set ? SWH[circle] : tall ? 3.6 : [2.4, 2.4, 3.6, 4.8][Math.floor(rnd() * 4)];
     const roof = ch.roof = kind === "gate" ? 1 : kind === "exit" ? 2 : opt.fallen || opt.high || tall ? 0 : set ? [0, 1, 2, 2, 0, 0, 2, 0, 2][circle] : [0, 2, 2, 1, 3, 2, 0, 1, 3, 2][Math.floor(rnd() * 10)];
     const lane = (lx, ly) => lx === 7 || lx === 8 || ly === 7 || ly === 8, keep = new Set(spots.map((p) => R(p[0], p[1])));
@@ -895,7 +900,8 @@ const infernus = (function () {
     if (ch.spire) for (const c of ch.spire) { HH[c] = 7; M[c] = 1; RV[c] = 0; }
     if (roof) for (let cd = 0; cd < 4; cd++) if (ch.doors[A(cd)] || (cd === 3 && entry >= 0)) for (const [x, y] of armCells(cd, 6)) { const c = R(x, y); if (M[c] !== 1) { CT[c] = 1; AR[c] = A(cd) & 1 ? 1 : 2; AB[c] = ch.doors[A(cd)] ? ch.doors[A(cd)].h : 0; } }   // the passage through the wall is a low vault
     for (let ly = 0; ly < S; ly++) for (let lx = 0; lx < S; lx++) { const c = at(ox + lx, ly); if (AR[c]) { CT[c] = 1; CH[c] = AB[c] + 2.1; } }
-    if (ch.drapes) for (const c of ch.drapes) { CT[c] = 1; CH[c] = HH[c] + 1.25; }      // a hanging comes down to head height
+    if (ch.drapes) for (const c of ch.drapes) { CT[c] = 1; CH[c] = HH[c] + 1.25; }
+    if (ch.low) for (const c of ch.low) { CT[c] = 1; CH[c] = HH[c] + 1.5; }      // the twisting passage is a close tube, its roof as near as its floor      // a hanging comes down to head height
     if (ch.fall) { let n = 0, px = 0, py = 0; for (let ly = 1; ly < 15; ly++) for (let lx = 1; lx < 15; lx++) if (HH[at(ox + lx, ly)] <= DEEP) { n++; px += ox + lx + .5; py += ly + .5; } ch.pit = n ? [px / n, py / n] : [ox + 8, 8]; }
     if (roof === 2) for (const dd of ch.doors) if (dd && dd.slab && (dd.slab.sv === 1 || dd.slab.sv === 2)) dd.slab.sv = 0;      // no bookcases in caves
     const list = pending[circle]; made[circle] = (made[circle] || 0) + 1;
@@ -940,7 +946,7 @@ const infernus = (function () {
   /* ---- the eye ---- */
   const cv = $("hell"), g = cv.getContext("2d");
   let W = 480, H = 270, img, buf, done;
-  const P = { x: 8, y: 5, a: -Math.PI / 2, f: 0, vz: 0, s: 1, sT: 1, p: 0 };
+  const P = { x: 8, y: 5, a: -Math.PI / 2, f: 0, fv: 0, vz: 0, s: 1, sT: 1, p: 0, roll: 0, rt: 0, rb: 0, tw0: -1 };
   const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5], PL = .72;
   const SNAP = 2;
   const FOG = 12, FOGK = .03, mist = (v, d) => { const e = Math.exp(-d * FOGK); return (v * Math.min(1, 6 / (1 + .012 * d * d)) + MV * 255) * FD * e + FOG * (1 - e); };
@@ -960,7 +966,7 @@ const infernus = (function () {
       const c = at(tx, ty);
       if (M[c] === 5 || gr(c, qx - tx, qy - ty) - (P.f + dz) > (swim ? .62 : STEP * P.s)) continue;
       if (ax) P.y += d; else P.x += d;
-      if (Math.floor(ax ? P.y : P.x) !== (ax ? cy : cx)) { const p2 = portal.get(at(cx, cy) * 4 + dir); if (p2) { P.x += p2[0]; P.y += p2[1]; P.f += p2[2]; if (p2[3] && p2[3] !== 1) P.sT = Math.min(2, Math.max(.5, P.sT * p2[3])); } }
+      if (Math.floor(ax ? P.y : P.x) !== (ax ? cy : cx)) { const p2 = portal.get(at(cx, cy) * 4 + dir); if (p2) { P.x += p2[0]; P.y += p2[1]; P.f += p2[2]; P.fv += p2[2]; if (p2[3] && p2[3] !== 1) P.sT = Math.min(2, Math.max(.5, P.sT * p2[3])); } }
     }
   }
   function where() { return chunks[Math.floor(P.x / S)].circle; }
@@ -985,7 +991,7 @@ const infernus = (function () {
     if (!on) return;
     const dt = Math.min(.05, (t - last) / 1000 || 0); last = t;
     if (!reading && depth === 1) {
-      const turn = (keys.has("ArrowLeft") ? -1 : 0) + (keys.has("ArrowRight") ? 1 : 0); P.a += turn * 2.2 * dt;
+      const turn = (keys.has("ArrowLeft") ? -1 : 0) + (keys.has("ArrowRight") ? 1 : 0); P.a += turn * 2.2 * dt * (Math.cos(P.roll * Math.PI / 180) < 0 ? -1 : 1);
       P.p = Math.max(-.85, Math.min(.85, P.p + ((keys.has("KeyR") || keys.has("PageUp") ? 1 : 0) - (keys.has("KeyF") || keys.has("PageDown") ? 1 : 0)) * 1.4 * dt));
       const f = (keys.has("KeyW") || keys.has("ArrowUp") ? 1 : 0) - (keys.has("KeyS") || keys.has("ArrowDown") ? 1 : 0), s = (keys.has("KeyD") ? 1 : 0) - (keys.has("KeyA") ? 1 : 0);
       P.s += (P.sT - P.s) * Math.min(1, dt * 1.2);
@@ -1002,8 +1008,13 @@ const infernus = (function () {
         const pit = chunks[cur].pit, lx0 = to.land % MW + .5, ly0 = Math.floor(to.land / MW) + .5;      // you come down where you went in, if there is ground there
         let nx = pit && to !== chunks[cur] ? lx0 + P.x - pit[0] : lx0, ny = pit && to !== chunks[cur] ? ly0 + P.y - pit[1] : ly0;
         if ((nx / S | 0) !== to.id || ny < 1 || ny > 15 || M[at(Math.floor(nx), Math.floor(ny))] !== 0 || HH[at(Math.floor(nx), Math.floor(ny))] <= DEEP) { nx = lx0; ny = ly0; }
-        P.x = nx; P.y = ny; P.f = 7.5; cur = to.id; unfold(to); fellAt = t;
+        P.x = nx; P.y = ny; P.f = P.fv = 7.5; cur = to.id; unfold(to); fellAt = t;
       }
+      P.fv = Math.abs(P.f - P.fv) > 2.5 ? P.f : grounded || swim ? P.fv + (P.f - P.fv) * Math.min(1, dt * 9) : P.f;      // the eye rides steps smoothly; in the air it follows the fall
+      { const tw = TW[c0];                         // in a twisting passage the whole view turns over as you walk it
+        if (tw >= 0) { if (P.tw0 < 0) P.tw0 = tw; P.rt = P.rb + 180 * (tw - P.tw0); } else if (P.tw0 >= 0) { P.rb = P.rt = Math.round(P.rt / 180) * 180; P.tw0 = -1; }
+        P.roll += (P.rt - P.roll) * Math.min(1, dt * 3);
+        cv.style.transform = Math.abs(P.roll % 360) > .05 ? "rotate(" + P.roll.toFixed(2) + "deg) scale(" + (1 + (Math.max(1, innerWidth / innerHeight) - 1) * Math.abs(Math.sin(P.roll * Math.PI / 180))).toFixed(3) + ")" : ""; }
       if (FT[at(Math.floor(P.x), Math.floor(P.y))] === 9) { leave(); return; }      // out under the stars
       for (const sl of slabs) { if (sl.open && sl.f < 1) sl.f = Math.min(1, sl.f + dt / 1.8); if (sl.ill) sl.wob = Math.max(0, Math.min(1, 2 - Math.hypot(P.x - sl.x, P.y - sl.y))); }
     }
@@ -1069,7 +1080,7 @@ const infernus = (function () {
     const pcx = Math.floor(P.x), pcy = Math.floor(P.y), h0 = gw(at(pcx, pcy), P.x - pcx, P.y - pcy);
     for (let x = 0; x < W; x++) {
       const cam = 2 * x / W - 1, rx = dx + px * cam, ry = dy + py * cam, ddx = Math.abs(1 / rx), ddy = Math.abs(1 / ry);
-      let mx = pcx, my = pcy, ox = 0, oy = 0, zr = P.f + EYE * P.s, dIn = 0, hin = h0; FD = 1;
+      let mx = pcx, my = pcy, ox = 0, oy = 0, zr = P.fv + EYE * P.s, dIn = 0, hin = h0; FD = 1;
       let sdx = rx < 0 ? (P.x - mx) * ddx : (mx + 1 - P.x) * ddx, sdy = ry < 0 ? (P.y - my) * ddy : (my + 1 - P.y) * ddy;
       for (let i = 0; i < 64; i++) {
         const c = my * MW + mx, side = sdx < sdy ? 0 : 1; let dOut = side ? sdy : sdx, cut = 0;
@@ -1169,7 +1180,7 @@ const infernus = (function () {
     const here = chunks[pcx / S | 0].circle; if (here >= 0 && here <= 8 && THEME[here].fx && !still) weather(o, THEME[here].fx, t);
     g.putImageData(img, 0, 0);
   }
-  function enter() { on = true; size(); P.x = 8; P.y = 5; P.f = 0; P.vz = 0; P.s = P.sT = 1; P.p = 0; grounded = true; cur = 0; P.a = -Math.PI / 2; reading = false; $("lectio").hidden = true; last = performance.now(); }
+  function enter() { on = true; size(); P.x = 8; P.y = 5; P.f = P.fv = 0; P.vz = 0; P.s = P.sT = 1; P.p = 0; P.roll = P.rt = P.rb = 0; P.tw0 = -1; cv.style.transform = ""; grounded = true; cur = 0; P.a = -Math.PI / 2; reading = false; $("lectio").hidden = true; last = performance.now(); }
   function leave() { on = depth > 0; if (document.pointerLockElement) document.exitPointerLock(); reading = false; $("lectio").hidden = true; travel(0, () => { on = false; $("glass").focus(); }); }
   addEventListener("keydown", (e) => {
     if (!on || scene !== "hell") return;
@@ -1181,10 +1192,10 @@ const infernus = (function () {
   cv.addEventListener("click", () => { if (reading) return; if (target) read(); else if (cv.requestPointerLock) { try { const p = cv.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) {} } });
   let drag = false;
   cv.addEventListener("pointerdown", () => drag = true); addEventListener("pointerup", () => drag = false);
-  addEventListener("pointermove", (e) => { if (on && !reading && (document.pointerLockElement === cv || drag)) { P.a += e.movementX * .0032; P.p = Math.max(-.85, Math.min(.85, P.p - e.movementY * .0022)); } });
+  addEventListener("pointermove", (e) => { if (on && !reading && (document.pointerLockElement === cv || drag)) { P.a += e.movementX * .0032 * (Math.cos(P.roll * Math.PI / 180) < 0 ? -1 : 1); P.p = Math.max(-.85, Math.min(.85, P.p - e.movementY * .0022)); } });
   addEventListener("resize", () => { if (on) size(); });
   requestAnimationFrame(frame);
-  return { enter, leave, P, sprites, chunks, S, MW, HH, CH, WL, M, gr, at, unfold, get on() { return on; } };
+  return { enter, leave, P, sprites, chunks, S, MW, HH, CH, WL, TW, M, gr, at, unfold, get on() { return on; } };
 })();
 
 $("state").innerHTML = REGISTRUM.sample

@@ -31,6 +31,8 @@ The mirror (`speculum`) of [Annulus](https://github.com/KeychainofSolomon/Annulu
   - **Falls:** where the river goes over a ledge it falls as a waterfall, with mist at its foot. On slopes the river keeps its banks and runs down them.
   - **Pits:** the floor of a pit shows the chamber you will fall into, seen from above, and after a fall the place comes up out of the dark.
   - **Each circle's look:** its own stone, its own kinds of chamber, and its own air: the storm wind of the lustful, the rain on the gluttons, the flakes of fire in the seventh circle, the wind off the ice. The second circle is dressed as a house of ill repute: booths behind hangings, lattice screens, couches, a bath, swags on the walls.
+  - **After Escher:** in some chambers a stair climbs round a block and arrives back at its own first step, still climbing; in others a close passage turns you over as you walk it, and you come out with floor and roof changed places until you walk one back.
+  - **The eye:** rides steps and ramps smoothly.
   - **Safeguards:** nothing but a doorway may open a chamber's outer wall; a door the chamber cannot reach is walled up again; the wall over an outer doorway rises out of sight; one arch is measured for a whole doorway so its two halves and its passage always meet.
   - **Not shown in this build:** Purgatory's entries (the suspected and the proscribed). The plain register still lists them.
 - **Read plainly:** the same records as a plain register.
