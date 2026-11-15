@@ -18,9 +18,10 @@ The mirror (`speculum`) of [Annulus](https://github.com/KeychainofSolomon/Annulu
   - **Ledges:** some doors open high over the next circle. You see it from above, step off, and cannot climb back.
   - **Size:** some doors make you larger or smaller, so a wall becomes a step or a step a wall. Some ways are only painted on the wall.
   - **Returning:** ways that lead back prefer the set chambers, so those become the places everything folds back to.
-  - **Rivers, as Dante places them:** Acheron past the Gate and before Limbo; the marsh of Styx in the fifth circle; Phlegethon, the river of blood, with its ford in the seventh; the ice of Cocytus in the ninth; the fair stream round Limbo's castle; and the unnamed little stream by the way out. Each named water carries Dante's own name for it on the wall. Water is drawn nowhere else. Not shown yet: Charon and his boat, Phlegyas's crossing to Dis, and Phlegethon's waterfall into the eighth circle.
-  - **Look:** clean white line on black, with wall and floor patterns visible at a distance and a thin fog beyond. Walls vary from cell to cell (coursed stone, uneven ashlar, rubble, living rock in caverns) and are worn: rubbed patches, cracks, broken wall heads, wavering floor lines. Edges are snapped to a coarse grid, as on the first PlayStation, so they shiver as you move.
-  - **Shapes:** caverns are broken and many-sided, with slanted walls; some built halls have their corners cut.
+  - **The river:** one water comes down through all of Hell, as Dante has it (XIV), named anew as it goes: Acheron, Styx, Phlegethon, and Cocytus where it can fall no further. It only runs downward: in by the door you came by, out by the ways that descend, over ledges as falls. Its course winds as a sine-generated curve (Langbein and Leopold); width goes as the square root of the flow and depth as its 0.4 power (Leopold and Maddock), so it narrows where it forks. Follow the water and you go down.
+  - **Water:** drawn with its surface and its bed, the bed dimmer the deeper it lies. Running water streaks downstream; still water lies in ponds, flooded courts and the marsh of Styx. You wade the shallows and swim, slowly, where it is deep.
+  - **Signs:** the walls carry none but the words over the Gate, the stars at the way out, and the numeral of the circle a door leads to.
+  - **Stone:** wall patterns are worked out from each point's place and height, so courses run level through a whole chamber, joints break bond, and rock strata follow round corners.
   - **Not shown in this build:** Purgatory's entries (the suspected and the proscribed). The plain register still lists them.
 - **Read plainly:** the same records as a plain register.
 
