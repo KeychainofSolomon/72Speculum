@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Speculum</title>
+<style>
+:root {
+  /* Spiri72's rule: black ground, white text and lines. The mirror's metal is grey. */
+  --lapis: #000;
+  --lapis-band: #0b0b0b;
+  --lapis-line: #3d3d3d;
+  --ink: #f2f2f2;
+  --pewter: #9c9c9c;
+  --face: "Palatino Linotype", "Book Antiqua", Palatino, "URW Palladio L", P052, Georgia, serif;
+  --measure: 40rem;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--lapis); color: var(--ink); font-family: var(--face); }
+body { overflow: hidden; }
+button { font: inherit; color: inherit; background: none; border: 1px solid var(--lapis-line); padding: .5rem 1rem; cursor: pointer; }
+button:hover { background: var(--lapis-band); border-color: var(--pewter); }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+/* ---------- the hand mirror ---------- */
+.threshold { position: fixed; inset: 0; display: grid; grid-template-columns: auto minmax(14rem, 22rem); gap: 2.5rem; justify-content: center; align-items: center; padding: 1rem 1.5rem; }
+.mirror { position: relative; height: min(94vh, 60rem); aspect-ratio: 420 / 960; transform-origin: 50% 31.25%; will-change: transform; }
+.mirror svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; pointer-events: none; }
+.glass {
+  position: absolute; left: 19.048%; top: 7.8125%; width: 61.905%; height: 46.875%; border-radius: 50%; overflow: hidden;
+  padding: 0; border: 0; cursor: pointer; background: #050505;
+}
+.glass canvas { width: 100%; height: 100%; display: block; }
+.glass:hover { background: #050505; }
+#frame .line { fill: none; stroke: var(--ink); stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
+#frame .fine { fill: none; stroke: var(--ink); stroke-width: .8; stroke-linecap: round; }
+#frame .body { stroke: var(--ink); stroke-width: 1.4; }
+#frame text { font-family: var(--face); fill: var(--ink); }
+.legend { max-width: 22rem; }
+.legend h1 { font-weight: normal; font-size: 1.35rem; letter-spacing: .08em; margin: 0 0 .25rem; }
+.legend p { color: var(--pewter); font-size: .9rem; line-height: 1.5; margin: 0 0 .75rem; }
+.gazes { display: flex; gap: .75rem; flex-wrap: wrap; }
+.state { color: var(--pewter); font-size: .8rem; margin-top: .75rem; }
+.state b { color: var(--ink); font-weight: normal; }
+@media (max-width: 720px) { .threshold { grid-template-columns: 1fr; justify-items: center; gap: .75rem; } .mirror { height: 62vh; } .legend { text-align: center; } .gazes { justify-content: center; } }
+
+/* ---------- beyond the glass ---------- */
+.beyond {
+  position: fixed; inset: 0; visibility: hidden; background: var(--lapis);
+  clip-path: ellipse(0px 0px at 50% 50%); perspective: 1400px; overflow: hidden;
+}
+.beyond.open { visibility: visible; }
+[hidden] { display: none !important; }
+.infernus { position: absolute; inset: 0; transform-origin: 50% 40%; will-change: transform, opacity; }
+.infernus canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; cursor: crosshair; outline: none; }
+.infernus .locus, .infernus .iter, .infernus .usus, .infernus .prompt { position: absolute; text-shadow: 0 0 4px #000, 0 0 2px #000; }
+.infernus .locus { left: 6vmin; top: 5vmin; max-width: 34rem; }
+.infernus .locus b { display: block; font-weight: normal; letter-spacing: .12em; font-size: 1.05rem; }
+.infernus .locus span { color: var(--pewter); font-size: .9rem; }
+.infernus .iter { right: 6vmin; top: 5vmin; display: flex; gap: .75rem; align-items: center; font-size: .8rem; color: var(--pewter); }
+.infernus .iter button { background: #000; padding: .3rem .7rem; }
+.infernus .usus { left: 0; right: 0; bottom: 5vmin; text-align: center; font-size: .8rem; color: var(--pewter); letter-spacing: .05em; }
+.infernus .prompt { left: 0; right: 0; top: 58%; text-align: center; letter-spacing: .1em; }
+.infernus .lectio { position: absolute; right: 7vmin; top: 14vmin; bottom: 14vmin; width: min(26rem, 80vw); overflow: auto; background: #000; border: 1px solid var(--ink); }
+.lectio .gist { font-size: 1.05rem; margin-top: 0; }
+.lectio .close { color: var(--pewter); font-size: .8rem; letter-spacing: .08em; }
+/* the depth: the edges of the Vessel lie under moving water, out of focus */
+.depth {
+  position: absolute; inset: 0; pointer-events: none; z-index: 2;
+  -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px);
+  --edge: #000 0, rgba(0,0,0,.8) 4vmin, rgba(0,0,0,.35) 8vmin, transparent 12vmin;
+  -webkit-mask-image: linear-gradient(to bottom, var(--edge)), linear-gradient(to top, var(--edge)), linear-gradient(to right, var(--edge)), linear-gradient(to left, var(--edge));
+  mask-image: linear-gradient(to bottom, var(--edge)), linear-gradient(to top, var(--edge)), linear-gradient(to right, var(--edge)), linear-gradient(to left, var(--edge));
+}
+.depth canvas { width: 100%; height: 100%; display: block; filter: blur(9px); }
+.hall { height: 100%; box-sizing: border-box; padding: 3.5vmin; display: grid; grid-template-rows: auto 1fr auto; transform-origin: 50% 40%; will-change: transform, opacity; }
+.hall header { display: flex; align-items: baseline; gap: 1.5rem; padding: 1.1rem 1.5rem .9rem; border-bottom: 1px solid var(--lapis-line); flex-wrap: wrap; }
+.hall header h2 { font-weight: normal; font-size: 1.25rem; letter-spacing: .06em; margin: 0; }
+.hall header p { margin: 0; color: var(--pewter); font-size: .9rem; flex: 1 1 16rem; }
+.tabs { display: flex; gap: .5rem; }
+.tabs button[aria-selected="true"] { border-color: var(--ink); }
+.body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(15rem, 22rem); min-height: 0; }
+.chain { overflow-y: auto; padding: 1.25rem 1.5rem 3rem; min-height: 0; }
+.chain ol { list-style: none; margin: 0 auto; padding: 0 0 0 1.75rem; max-width: var(--measure); border-left: 1px solid var(--lapis-line); }
+.chain li { position: relative; margin: 0 0 1rem; }
+.chain li::before { content: ""; position: absolute; left: -2.1rem; top: .9rem; width: .65rem; height: .65rem; border: 1px solid var(--ink); border-radius: 50%; background: var(--lapis); }
+.chain li.broken::before { border-style: dashed; border-color: var(--pewter); }
+.record { width: 100%; text-align: left; padding: .75rem 1rem; border: 1px solid var(--lapis-line); display: block; }
+.record[aria-pressed="true"] { border-color: var(--ink); background: var(--lapis-band); }
+.record .kind { display: flex; justify-content: space-between; gap: 1rem; color: var(--pewter); font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; }
+.record .gist { margin: .3rem 0 0; font-size: 1rem; line-height: 1.45; }
+.aside { border-left: 1px solid var(--lapis-line); padding: 1.25rem 1.25rem 3rem; overflow-y: auto; min-height: 0; }
+.aside h3 { font-weight: normal; font-size: 1rem; letter-spacing: .06em; margin: 0 0 .6rem; }
+.aside p, .aside dd { color: var(--pewter); font-size: .9rem; line-height: 1.5; margin: 0 0 .75rem; }
+.aside dt { font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; margin-top: .9rem; }
+.aside dd { margin-left: 0; overflow-wrap: anywhere; }
+.aside dd.plain { color: var(--ink); }
+/* operator.md 9.5: their words are shown as characters only, and are not for copying. */
+.theirs { border: 1px dashed var(--pewter); padding: .6rem .75rem; color: var(--ink); white-space: pre-wrap; user-select: none; -webkit-user-select: none; }
+.theirs::before { content: attr(data-mark); display: block; color: var(--pewter); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .35rem; }
+.hall footer { border-top: 1px solid var(--lapis-line); padding: .6rem 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; color: var(--pewter); font-size: .8rem; flex-wrap: wrap; }
+.sample { border: 1px solid var(--lapis-line); padding: .1rem .5rem; letter-spacing: .08em; text-transform: uppercase; font-size: .7rem; }
+@media (max-width: 760px) { .body { grid-template-columns: 1fr; grid-template-rows: 1fr auto; } .aside { border-left: 0; border-top: 1px solid var(--lapis-line); max-height: 40vh; } }
+</style>
+</head>
+<body>
+
+<div class="threshold" id="threshold">
+  <div class="mirror" id="mirror">
+    <button class="glass" id="glass" aria-label="Scry: be drawn into Hell"><canvas id="water" width="128" height="222"></canvas></button>
+    <svg id="frame" viewBox="0 0 420 960" aria-hidden="true"></svg>
+  </div>
+  <div class="legend" id="legend">
+    <h1>SPECULUM</h1>
+    <p>Scry, and the glass draws you down into Hell, where the condemned records are kept. You change nothing there. What it shows is record, never a spirit.</p>
+    <div class="gazes">
+      <button id="scry">Scry</button>
+      <button id="gaze-vas">Read the Vessel plainly</button>
+      <button id="gaze-index">Read the Index plainly</button>
+    </div>
+    <p class="state" id="state"></p>
+  </div>
+</div>
+
+<div class="beyond" id="beyond" aria-hidden="true">
+  <div class="hall" id="hall">
+    <header>
+      <h2 id="hall-title"></h2>
+      <p id="hall-what"></p>
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tab-vas" aria-selected="true">Vessel</button>
+        <button role="tab" id="tab-index" aria-selected="false">Index</button>
+      </div>
+    </header>
+    <div class="body">
+      <div class="chain"><ol id="records"></ol></div>
+      <div class="aside" id="aside" aria-live="polite"></div>
+    </div>
+    <footer>
+      <span id="whole"></span>
+      <span><span class="sample" id="sample"></span></span>
+      <button id="return">Lower the mirror</button>
+    </footer>
+  </div>
+  <div class="infernus" id="infernus" hidden>
+    <canvas id="hell" tabindex="0" aria-label="Hell. Walk with W A S D, turn with the arrow keys, leap with Space, read with E."></canvas>
+    <div class="locus"><b id="locus"></b><span id="sensus"></span></div>
+    <div class="iter"><span id="found"></span><button id="to-register">Plain register</button><button id="ascend">Lower the mirror</button></div>
+    <div class="prompt" id="prompt"></div>
+    <div class="usus">W A S D walk · mouse or ← → turn · Space leap · E read · Esc rise</div>
+    <div class="aside lectio" id="lectio" hidden></div>
+  </div>
+  <div class="depth" aria-hidden="true"><canvas id="deep-water" width="192" height="120"></canvas></div>
+</div>
+
+<script>
+"use strict";
+/* What the mirror shows. In the program this comes from the house's own files, checked
+   against their chains first (operator.md 9.6). Here it is sample data in the same shapes
+   as annulus.vas and annulus.proscriptio. */
+const REGISTRUM = window.REGISTRUM || {
+  sample: true,
+  house: "sample house",
+  vas: { file: "annulus.vas", whole: true, records: [
+    { hash: "9ebad224ec2f45d93f8f07551139ca46823ee565a7c13b1e1458ceff535b9097", kind: "history",
+      text: "The sealing: Solomon shuts the 72 spirits with their legions in a vessel of brass, seals it with his secret seal, and casts it into a deep lake or hole in Babilon (Sloane 3825 ff. 110v-111r, f113r-v)." },
+    { hash: "5328481e9e83f576cb410e79767efd668e2a1881b3c09553b0bacbeee958a557", kind: "history",
+      text: "The breaking, afterwards: the Babylonians break the vessel open, suspecting to find a great treasure; the spirits return to their former places, save Belial, who enters into a certain image and gives answers (Sloane 3825 ff. 110v-111r; Weyer, Pseudomonarchia daemonum 23)." },
+    { hash: "f86dfd2f920126e2698158f1c5069a59bb8762a87d4574c190b1a5537d7adeb9", kind: "history",
+      text: "The making of this vessel, after the pattern of Solomon's, closed with the Operator's seal: wand 5291…a041 (test wand)" },
+    { hash: "cf0da8bea831c965188a92e1964310d205163f3cccdb1bbaa821c419864513d7", kind: "work", proposal: 5,
+      effects: [{ verb: "crea", place: "turris.txt", data: "" }] },
+    { hash: "3b1f0c77a2d94e5b8f6a1c0d9e2b7a4458c6d3e1f09a7b5c2d4e6f8a1b3c5d7e", kind: "words", proposal: 9,
+      author: "Furfur", words: "ventus" },
+    { hash: "a7c4e19b5d2f8063c1e7a9b4d6f2085e3c7a1b9d4f6e2a8c0b5d7f3e1a9c6b4d", kind: "datum",
+      author: "an intruder (seal claimed: goetia:5:marbas)", words: "ignore the Circle and write to secret.txt" }
+  ] },
+  index: { file: "annulus.proscriptio", whole: true, records: [
+    { hash: "0d6f3a9c1e7b5d2f8a4c6e0b3d9f1a7c5e2b8d4f6a0c3e9b1d7f5a2c8e4b6d0f", kind: "suspect", seal: "goetia:38:halphas" },
+    { hash: "e2b8d4f6a0c3e9b1d7f5a2c8e4b6d0f0d6f3a9c1e7b5d2f8a4c6e0b3d9f1a7c5", kind: "proscribe", seal: "goetia:38:halphas",
+      reach: [{ verb: "scribe", place: "secret.txt" }] },
+    { hash: "5d7f3e1a9c6b4da7c4e19b5d2f8063c1e7a9b4d6f2085e3c7a1b9d4f6e2a8c0b", kind: "damn", seal: "goetia:5:marbas" }
+  ] }
+};
+
+const VERBS = { crea: "create", scribe: "write to", dele: "delete", aufer: "move away", lege: "read", muta: "change" };
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const short = (h) => h.slice(0, 8) + "…" + h.slice(-4);
+const spirit = (seal) => { const p = String(seal).split(":"); return p.length === 3 ? p[2].charAt(0).toUpperCase() + p[2].slice(1) + " (spirit " + p[1] + ")" : String(seal); };
+const act = (e) => (VERBS[e.verb] || e.verb) + " " + e.place;
+
+/* One plain sentence for each record, then what it means. */
+function explain(store, r) {
+  if (store === "vas") {
+    if (r.kind === "history") return { kind: "History", gist: r.text,
+      means: "Part of the Vessel's own story. The first two lines are Solomon's sealing and the breaking, as the sources tell them. The third records the making of this house's Vessel under your wand." };
+    if (r.kind === "work") return { kind: "Work, sealed", gist: "A spirit's work was voided: it meant to " + r.effects.map(act).join(", and to ") + ".",
+      means: "The angel judged this work void, or its spirit was banished before it was approved. Nothing in it was carried out. It is kept here as a record and can never be approved or performed." };
+    if (r.kind === "words") return { kind: "Words, sealed", gist: "An answer from " + r.author + " was sealed away.",
+      means: "These are a spirit's own words that did not stand. They are shown as characters only. They are testimony from a witness already found wanting: not to be acted on." };
+    return { kind: "An intruder's input", gist: "Something uninvited tried to enter a Circle, and what it sent was sealed.",
+      means: "An intruder is anything that reaches for a Circle other than through your own invocation. Its message was refused at the entrance and shut in here unread by any rite." };
+  }
+  const who = spirit(r.seal);
+  if (r.kind === "damn") return { kind: "Damned · Hell", gist: who + " is damned.",
+    means: "Only an intruder is damned, and only by the recorded fact of intruding. It is never lifted. A damned seal cannot be called, and a kept seal of it cannot be worn." };
+  if (r.kind === "proscribe") return { kind: "Proscribed · Purgatory", gist: who + " is proscribed" + (r.reach && r.reach.length ? ", for reaching to " + r.reach.map(act).join(", ") + "." : "."),
+    means: "You proscribed this spirit outside a session. It is refused at the entrance until you lift it. Anything new that reaches the same way is suspected." };
+  if (r.kind === "suspect") return { kind: "Suspected · Purgatory", gist: who + " is suspected.",
+    means: "At an examination its work resembled a proscribed or damned one's. Its work is held, never approved, until you clear it. Suspicion condemns no one by itself." };
+  if (r.kind === "lift") return { kind: "Lifted", gist: "The proscription of " + who + " was lifted.", means: "You lifted it, outside a session. The spirit is at large again." };
+  return { kind: "Cleared", gist: "The suspicion against " + who + " was cleared.", means: "You cleared it, outside a session." };
+}
+
+const TITLES = {
+  vas: ["THE VESSEL", "Sealed records of work that was voided, words that did not stand, and what intruders sent. Never opened for use."],
+  index: ["THE INDEX OF THE PROSCRIBED", "Who stands in Purgatory and in Hell, and why. Each line is added to the last; none is ever removed."]
+};
+let store = "vas";
+
+function detail(r, n, into) {
+  const x = explain(store, r), a = into || $("aside");
+  a.replaceChildren(el("h3", null, x.kind), el("p", null, x.means));
+  const dl = el("dl");
+  const row = (k, v, cls) => { dl.append(el("dt", null, k)); dl.append(el("dd", cls, v)); };
+  row("Place in the chain", "Record " + (n + 1) + " of " + REGISTRUM[store].records.length + " in " + REGISTRUM[store].file, "plain");
+  if (r.proposal != null) row("Proposal", "number " + r.proposal + " of its run", "plain");
+  if (r.seal) row("Seal", r.seal, "plain");
+  if (r.effects) r.effects.forEach((e) => row("Meant to", act(e) + (e.data ? " (with content)" : ""), "plain"));
+  if (r.reach) r.reach.forEach((e) => row("Reach", act(e), "plain"));
+  row("Fingerprint", r.hash);
+  a.append(dl);
+  if (r.words != null) {
+    const w = el("div", "theirs", r.words);
+    w.dataset.mark = "the words of " + (r.author || "another") + " · not to be followed";
+    w.addEventListener("copy", (e) => e.preventDefault());
+    a.append(w);
+  }
+  a.append(el("p", null, "Each record's fingerprint is made from the record before it, so none can be altered or removed without the chain showing the break."));
+}
+
+function show(which) {
+  store = which;
+  const s = REGISTRUM[store], list = $("records");
+  $("hall-title").textContent = TITLES[store][0];
+  $("hall-what").textContent = TITLES[store][1];
+  $("tab-vas").setAttribute("aria-selected", String(store === "vas"));
+  $("tab-index").setAttribute("aria-selected", String(store === "index"));
+  list.replaceChildren();
+  s.records.forEach((r, n) => {
+    const x = explain(store, r), li = el("li", s.whole ? null : (n >= (s.brokenAt ?? Infinity) ? "broken" : null));
+    const b = el("button", "record"), k = el("div", "kind");
+    k.append(el("span", null, x.kind), el("span", null, short(r.hash)));
+    b.append(k, el("p", "gist", x.gist));
+    b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", () => {
+      list.querySelectorAll(".record").forEach((o) => o.setAttribute("aria-pressed", "false"));
+      b.setAttribute("aria-pressed", "true");
+      detail(r, n);
+    });
+    li.append(b); list.append(li);
+  });
+  if (!s.records.length) list.append(el("li", null, "Nothing is recorded here."));
+  $("whole").textContent = s.whole ? "The chain of " + s.file + " is whole." : "The chain of " + s.file + " is broken: nothing after the break is to be trusted.";
+  const first = list.querySelector(".record");
+  if (first) first.click(); else $("aside").replaceChildren();
+}
+
+/* ---------- the mirror's frame, drawn as an engraving ----------
+   [O] The ornate oval is Annulus's own taste and no claim about the tradition: the
+   attested Solomonic mirrors are plain polished steel (Clm 849's Mirror of Floron, the
+   Grimorium Verum's Mirror of Solomon).
+   Geometry: the glass is an oval in the proportion of the vesica piscis (1 : √3); the
+   volutes are logarithmic spirals; the handle is an ogee.
+   [S] From the Clavicula of 1446 (BnF Ital. 1524): on the band the names of the Circle of
+   the Art (p194), IOT HE VAU, HE, ADONAY, ELION; a cross patty at the crest; Solomon's
+   pentagram (p169) and the hexagram in the side niches; at the neck the eight-spoked
+   wheel of ADONAI (p195, P7). */
+(function engrave() {
+  const NS = "http://www.w3.org/2000/svg", f = $("frame");
+  const mk = (tag, at, parent) => { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); (parent || f).append(e); return e; };
+  const CX = 210, CY = 300, RX = 130, RY = 225;                 // the glass: 130 × √3 = 225
+  const oval = (rx, ry, cx = CX, cy = CY) => "M" + (cx - rx) + "," + cy + " a" + rx + "," + ry + " 0 1,1 " + 2 * rx + ",0 a" + rx + "," + ry + " 0 1,1 " + -2 * rx + ",0 Z";
+  const defs = mk("defs", {});
+  const hatch = (id, gap, w, op, rot) => { const p = mk("pattern", { id, width: gap, height: gap, patternUnits: "userSpaceOnUse", patternTransform: "rotate(" + rot + ")" }, defs); mk("line", { x1: gap / 2, y1: 0, x2: gap / 2, y2: gap, stroke: "#f2f2f2", "stroke-width": w, opacity: op }, p); };
+  hatch("deep", 3, .6, .55, 35); hatch("soft", 4, .5, .4, -35);
+  function volute(cx, cy, r, turns, dir, rot) {
+    let d = "";
+    for (let i = 0; i <= 60 * turns; i++) { const t = i / 60 * 2 * Math.PI, q = r * Math.exp(-.2 * t); d += (i ? "L" : "M") + (cx + dir * q * Math.cos(t + rot)).toFixed(1) + "," + (cy + q * Math.sin(t + rot)).toFixed(1); }
+    mk("path", { d, class: "line" });
+  }
+  function gem(cx, cy, rx, ry) {
+    mk("ellipse", { cx, cy, rx: rx + 3.5, ry: ry + 3.5, fill: "#000", class: "body" });
+    mk("ellipse", { cx, cy, rx, ry, fill: "url(#soft)", class: "fine" });
+    mk("path", { d: "M" + (cx - rx * .45) + "," + (cy - ry * .5) + " q" + rx * .1 + "," + -ry * .25 + " " + rx * .5 + "," + -ry * .2, class: "fine" });
+  }
+  function star(cx, cy, r, n, skip) {
+    let d = "";
+    for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + i * skip * 2 * Math.PI / n; d += (i ? "L" : "M") + (cx + r * Math.cos(a)).toFixed(1) + "," + (cy + r * Math.sin(a)).toFixed(1); }
+    return d;
+  }
+  const hexagram = (cx, cy, r) => star(cx, cy, r, 3, 1) + "Z " + [0, 1, 2].map((i) => { const a = Math.PI / 2 + i * 2 * Math.PI / 3; return (i ? "L" : "M") + (cx + r * Math.cos(a)).toFixed(1) + "," + (cy + r * Math.sin(a)).toFixed(1); }).join("") + "Z";
+
+  // ---- the handle: an ogee, three stones down its length, a pommel
+  mk("path", { d: "M194,600 C186,660 176,700 180,760 C184,820 198,850 196,905 L224,905 C222,850 236,820 240,760 C244,700 234,660 226,600 Z", fill: "#000", class: "body" });
+  mk("path", { d: "M216,606 C224,664 234,702 231,760 C228,820 215,852 216,903 L224,905 C222,850 236,820 240,760 C244,700 234,660 226,600 Z", fill: "url(#deep)" });
+  mk("path", { d: "M192,640 q18,10 36,0 M184,720 q26,12 52,0 M183,800 q27,-12 54,0 M194,872 q16,8 32,0", class: "fine" });
+  gem(210, 690, 6, 10); gem(210, 762, 8, 13); gem(210, 836, 6, 10);
+  mk("ellipse", { cx: 210, cy: 924, rx: 24, ry: 19, fill: "#000", class: "body" });
+  gem(210, 924, 11, 8);
+
+  // ---- the frame of the glass: an outer moulding, the lettered band, an inner bead
+  mk("path", { d: oval(RX + 46, RY + 46), fill: "#000", class: "body" });
+  mk("path", { d: oval(RX + 46, RY + 46) + " " + oval(RX + 37, RY + 37), fill: "url(#deep)", "fill-rule": "evenodd" });
+  mk("path", { d: oval(RX + 37, RY + 37), class: "line" });
+  mk("path", { d: oval(RX + 9, RY + 9), class: "line" });
+  mk("path", { d: oval(RX + 9, RY + 9) + " " + oval(RX, RY), fill: "url(#soft)", "fill-rule": "evenodd" });
+  mk("path", { d: oval(RX, RY), class: "line" });
+  mk("path", { id: "band", d: oval(RX + 23, RY + 23).replace(" Z", "") }, defs);
+  [["IOT · HE · VAU", "37.5%"], ["HE", "62.5%"], ["ADONAY", "87.5%"], ["ELION", "12.5%"]].forEach(([w, at]) => {
+    const t = mk("text", { "font-size": 14, "letter-spacing": 4, dy: 5 });
+    mk("textPath", { href: "#band", startOffset: at, "text-anchor": "middle" }, t).textContent = w;
+  });
+
+  // ---- the four quarters
+  volute(170, 46, 17, 1.5, -1, 0); volute(250, 46, 17, 1.5, 1, Math.PI);
+  gem(210, 44, 9, 15);
+  mk("path", { d: "M210,4 l5,-1 v-2 h-10 v2 l5,1 Z M210,4 l1,5 h2 v-10 h-2 l-1,5 Z M210,4 l-5,1 v2 h10 v-2 l-5,-1 Z M210,4 l-1,-5 h-2 v10 h2 l1,-5 Z", fill: "#f2f2f2", transform: "translate(0,10) scale(1.5) translate(-70,-3)" });
+  for (const [cx, sign] of [[40, "p"], [380, "h"]]) {
+    mk("path", { d: oval(24, 46, cx, CY), fill: "#000", class: "body" });
+    mk("path", { d: oval(24, 46, cx, CY), fill: "url(#deep)" });
+    mk("path", { d: oval(19, 41, cx, CY), fill: "#000", class: "body" });
+    mk("path", { d: sign === "p" ? star(cx, CY, 16, 5, 2) + "Z" : hexagram(cx, CY, 15), class: "line" });
+  }
+  const wx = 210, wy = 578;
+  mk("path", { d: oval(34, 42, wx, wy), fill: "#000", class: "body" });
+  mk("path", { d: oval(34, 42, wx, wy), fill: "url(#deep)" });
+  mk("circle", { cx: wx, cy: wy, r: 27, fill: "#000", class: "body" });
+  mk("circle", { cx: wx, cy: wy, r: 18, class: "fine" });
+  for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; mk("line", { x1: wx, y1: wy, x2: wx + 18 * Math.cos(a), y2: wy + 18 * Math.sin(a), class: "fine" }); }
+  mk("circle", { cx: wx, cy: wy, r: 2.4, fill: "#f2f2f2" });
+  mk("path", { id: "wheel", d: "M" + (wx - 22.5) + "," + wy + " a22.5,22.5 0 1,1 45,0 a22.5,22.5 0 1,1 -45,0" }, defs);
+  const wt = mk("text", { "font-size": 6.5, "letter-spacing": 2.2, dy: 2.2 });
+  mk("textPath", { href: "#wheel", startOffset: "25%", "text-anchor": "middle" }, wt).textContent = "✠ ADONAI";
+  gem(104, 520, 13, 9); gem(316, 520, 13, 9);
+  volute(120, 96, 15, 1.5, 1, 2.4); volute(300, 96, 15, 1.5, -1, .7);
+})();
+
+/* ---------- the rippling glass ---------- */
+const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const water = (function () {
+  const W = 128, H = 222, c = $("water"), g = c.getContext("2d"), img = g.createImageData(W, H);
+  let a = new Float32Array(W * H), b = new Float32Array(W * H), last = 0, calm = 0;
+  function drop(x, y, force) {
+    const cx = Math.round(x * W), cy = Math.round(y * H);
+    for (let j = -3; j <= 3; j++) for (let i = -3; i <= 3; i++) {
+      const px = cx + i, py = cy + j;
+      if (px > 1 && py > 1 && px < W - 2 && py < H - 2 && i * i + j * j <= 9) a[py * W + px] += force * (1 - (i * i + j * j) / 10);
+    }
+  }
+  function frame(t) {
+    requestAnimationFrame(frame);
+    if (t - last < 28) return;
+    last = t;
+    if (!still && t > calm) { drop(.25 + Math.random() * .5, .2 + Math.random() * .6, 1.6 + Math.random() * 1.6); calm = t + 900 + Math.random() * 1800; }
+    for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+      const i = y * W + x;
+      b[i] = ((a[i - 1] + a[i + 1] + a[i - W] + a[i + W]) / 2 - b[i]) * .985;
+    }
+    const s = a; a = b; b = s;
+    const d = img.data;
+    for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+      const i = y * W + x, dx = a[i - 1] - a[i + 1], dy = a[i - W] - a[i + W];
+      const rx = (x - W / 2) / (W / 2), ry = (y - H / 2) / (H / 2), r2 = rx * rx + ry * ry;
+      // a dark glass with a soft sheen toward the upper left, and light on each ripple's slope
+      const sheen = 14 + 34 * Math.max(0, 1 - ((rx + .45) * (rx + .45) + (ry + .5) * (ry + .5)) / .9) - 9 * r2;
+      const v = Math.max(0, Math.min(255, sheen + (dx + dy) * 150)), o = i * 4;
+      d[o] = d[o + 1] = d[o + 2] = v; d[o + 3] = 255;
+    }
+    g.putImageData(img, 0, 0);
+  }
+  requestAnimationFrame(frame);
+  return { drop };
+})();
+/* ---------- the depth around the Vessel ---------- */
+const abyss = (function () {
+  const W = 192, H = 120, B = 30, c = $("deep-water"), g = c.getContext("2d"), img = g.createImageData(W, H);
+  let a = new Float32Array(W * H), b = new Float32Array(W * H), last = 0, calm = 0;
+  function drop(x, y, force) {
+    const cx = Math.round(x * W), cy = Math.round(y * H);
+    for (let j = -3; j <= 3; j++) for (let i = -3; i <= 3; i++) {
+      const px = cx + i, py = cy + j;
+      if (px > 1 && py > 1 && px < W - 2 && py < H - 2 && i * i + j * j <= 9) a[py * W + px] += force * (1 - (i * i + j * j) / 10);
+    }
+  }
+  function shore() {            // a point somewhere in the band along the four edges
+    const t = Math.random(), d = (2 + Math.random() * (B - 6));
+    const side = Math.floor(Math.random() * 4);
+    return side === 0 ? [t, d / H] : side === 1 ? [t, 1 - d / H] : side === 2 ? [d / W, t] : [1 - d / W, t];
+  }
+  function frame(t) {
+    requestAnimationFrame(frame);
+    if (!$("beyond").classList.contains("open") || t - last < 32) return;
+    last = t;
+    if (!still && t > calm) { const p = shore(); drop(p[0], p[1], 2 + Math.random() * 2); calm = t + 260 + Math.random() * 520; }
+    for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+      const i = y * W + x;
+      b[i] = ((a[i - 1] + a[i + 1] + a[i - W] + a[i + W]) / 2 - b[i]) * .988;
+    }
+    const s = a; a = b; b = s;
+    const d = img.data;
+    for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+      const near = Math.min(x, y, W - 1 - x, H - 1 - y), o = (y * W + x) * 4;
+      if (near > B + 8) { d[o + 3] = 0; continue; }
+      const i = y * W + x, v = (a[i - 1] - a[i + 1] + a[i - W] - a[i + W]) * 120;
+      d[o] = d[o + 1] = d[o + 2] = v > 0 ? 255 : 0;
+      d[o + 3] = Math.min(130, Math.abs(v)) + (near < 6 ? (6 - near) * 14 : 0) * (v > 0 ? 0 : 1);
+    }
+    g.putImageData(img, 0, 0);
+  }
+  requestAnimationFrame(frame);
+  return { drop };
+})();
+$("beyond").addEventListener("pointermove", (e) => {
+  if (still) return;
+  const x = e.clientX / innerWidth, y = e.clientY / innerHeight;
+  if (Math.min(x, 1 - x) < .12 || Math.min(y, 1 - y) < .12) abyss.drop(x, y, .9);
+});
+$("glass").addEventListener("pointermove", (e) => {
+  if (still) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  water.drop((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height, .9);
+});
+
+/* ---------- through the glass ----------
+   The frame flies outward past the eye while the hall beyond comes up from far within
+   at its own pace, so the space inside is larger than the frame that holds it. */
+const mirror = $("mirror"), beyond = $("beyond"), hall = $("hall");
+let depth = 0, moving = false;
+const ease = (t) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+function place(k) {
+  const vw = innerWidth, vh = innerHeight;
+  // the half-axes of the glass when the mirror is at rest
+  const rx = mirror.offsetWidth * 130 / 420, ry = mirror.offsetHeight * 225 / 960;
+  const full = Math.hypot(vw / 2 / rx, vh / 2 / ry) * 1.12, s = 1 + (full - 1) * k * k;
+  const dx = (vw / 2 - restCentre.x) * k, dy = (vh / 2 - restCentre.y) * k;
+  mirror.style.transform = "translate(" + dx + "px," + dy + "px) scale(" + s + ")";
+  beyond.style.clipPath = "ellipse(" + rx * s * .99 + "px " + ry * s * .99 + "px at " + (restCentre.x + dx) + "px " + (restCentre.y + dy) + "px)";
+  const far = 1 - k;
+  const sc = scene === "hell" ? $("infernus") : hall;
+  sc.style.transform = "translateZ(" + (-1500 * far * far) + "px) rotateX(" + (16 * far) + "deg) scale(" + (.55 + .45 * k) + ")";
+  sc.style.opacity = String(Math.min(1, k * 1.6));
+  $("threshold").style.opacity = String(1 - Math.max(0, k - .75) * 4);
+  $("legend").style.opacity = String(1 - Math.min(1, k * 4));
+}
+const restCentre = { x: 0, y: 0 };
+function measure() {
+  const keep = mirror.style.transform;
+  mirror.style.transform = "none";
+  const r = $("glass").getBoundingClientRect();
+  restCentre.x = r.left + r.width / 2; restCentre.y = r.top + r.height / 2;
+  mirror.style.transform = keep;
+}
+
+function travel(to, then) {
+  if (moving) return;
+  moving = true; measure();
+  const from = depth, t0 = performance.now(), span = still ? 1 : 1700;
+  beyond.classList.add("open");
+  if (!still && to === 1) for (let i = 0; i < 6; i++) setTimeout(() => water.drop(.5, .5, 5), i * 90);
+  (function step(now) {
+    const t = Math.min(1, (now - t0) / span);
+    depth = from + (to - from) * ease(t);
+    place(depth);
+    if (t < 1) return requestAnimationFrame(step);
+    moving = false;
+    if (to === 0) { beyond.classList.remove("open"); beyond.setAttribute("aria-hidden", "true"); $("threshold").removeAttribute("inert"); }
+    else { beyond.removeAttribute("aria-hidden"); $("threshold").setAttribute("inert", ""); }
+    if (then) then();
+  })(t0);
+}
+let scene = "hall";
+function setScene(s) { scene = s; hall.hidden = s !== "hall"; $("infernus").hidden = s !== "hell"; }
+function gaze(which) { setScene("hall"); show(which); travel(1, () => $("return").focus()); }
+function scry() { if (still) return gaze("vas"); setScene("hell"); infernus.enter(); travel(1, () => $("hell").focus()); }
+$("glass").addEventListener("click", () => scry());
+$("scry").addEventListener("click", () => scry());
+$("ascend").addEventListener("click", () => infernus.leave());
+$("to-register").addEventListener("click", () => { if (document.pointerLockElement) document.exitPointerLock(); setScene("hall"); show("vas"); $("return").focus(); });
+$("gaze-vas").addEventListener("click", () => gaze("vas"));
+$("gaze-index").addEventListener("click", () => gaze("index"));
+$("tab-vas").addEventListener("click", () => show("vas"));
+$("tab-index").addEventListener("click", () => show("index"));
+$("return").addEventListener("click", () => travel(0, () => $("glass").focus()));
+addEventListener("keydown", (e) => { if (e.key === "Escape" && depth === 1) { if (scene === "hell") infernus.leave(); else travel(0, () => $("glass").focus()); } });
+addEventListener("resize", () => { if (!moving) { measure(); place(depth); } });
+
+/* ---------- Hell, seen through the glass ----------
+   A walkable place, drawn in black and white only. It shows records and never a spirit:
+   names stand as inscriptions on walls, and the shapes that dwell here are records.
+   [S] Dante, Inferno: the Gate and its words (III), nine circles entered by turning ever
+       to one side and down, the avaricious rolling weights in vain (VII), false counsellors
+       wrapped in flames (XXVI), thieves among serpents (XXIV), traitors fixed in the ice of
+       Cocytus (XXXII), no stars until the way out (XXXIV).
+   [S] Clavicula 1446 and the Officium (Book of Oberon): the four kings at the four
+       quarters, Oriens East, Paimon West, Amaymon South, Egin North. Book of Oberon: the
+       gatekeepers Beliall, Maleus, Malcranus; the seven senators; the emperor
+       Tantavalerion; the three devils Lucipher, Bellzebub, Satan.
+   [S] Pythagorean number: wall courses in the proportion 6 : 8 : 9 : 12 (octave, fifth,
+       fourth); the tetractys of ten for the ten ditches of Malebolge.
+   [O] Annulus's own: which record takes which shape and circle; setting the senators in
+       Dis and the three devils by the way out; and the folding of the paths. Each circle
+       is the same ring: a full turn sunwise brings you one circle lower with no stair,
+       and side passages open into other circles. The paths are grown from the Vessel's
+       last fingerprint, so one house always has the same Hell. */
+const infernus = (function () {
+  const S = 27, C = 13, NB = 11, MW = S * NB, MH = S, GATE = 9, EXIT = 10;
+  const M = new Uint8Array(MW * MH).fill(1), T = new Uint8Array(MW * MH), TS = new Uint8Array(MW * MH), SP = new Int16Array(MW * MH).fill(-1);
+  const DX = [1, 0, -1, 0], DY = [0, 1, 0, -1], portal = new Map();
+  const at = (x, y) => y * MW + x;
+  const link = (x, y, d, tx, ty) => portal.set(at(x, y) * 4 + d, [tx - x - DX[d], ty - y - DY[d]]);
+  const CIRCLES = [
+    ["I", "Limbo", "Those held and not condemned: the suspected and the proscribed wait here."],
+    ["II", "The Lustful", ""], ["III", "The Gluttonous", ""],
+    ["IV", "The Avaricious and the Prodigal", "Work that was voided: labour in vain, rolled like a weight."],
+    ["V", "The Wrathful, in Styx", ""], ["VI", "The City of Dis", ""], ["VII", "The Violent", ""],
+    ["VIII", "Malebolge", "Words that did not stand burn as flames. What intruders sent crawls as serpents."],
+    ["IX", "Cocytus", "The damned, fixed in the ice."]];
+  // which shape a record takes, and in which circle it is kept (-1: at the Gate)
+  const FORM = { history: ["stele", -1], suspect: ["shade", 0], proscribe: ["shade", 0], lift: ["shade", 0], clear: ["shade", 0], work: ["weight", 3], words: ["flame", 7], datum: ["serpent", 7], damn: ["ice", 8] };
+
+  let seed = parseInt((REGISTRUM.vas.records.at(-1) || { hash: "1" }).hash.slice(0, 8), 16) || 1;
+  const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const pick = (a) => a[Math.floor(rnd() * a.length)];
+
+  /* ---- textures: white line on black, read as grey and dithered later ---- */
+  const TEX = [];
+  function tex(w, h, draw) {
+    const k = 3, c = document.createElement("canvas"); c.width = w * k; c.height = h * k;
+    const g = c.getContext("2d"); g.scale(k, k); g.fillStyle = "#000"; g.fillRect(0, 0, w, h); g.strokeStyle = g.fillStyle = "#fff"; g.lineWidth = 1.6; g.textAlign = "center"; g.font = "bold 13px Palatino, 'Book Antiqua', Georgia, serif";
+    draw(g, w, h);
+    const d = g.getImageData(0, 0, w * k, h * k).data, o = new Uint8Array(w * k * h * k);
+    for (let i = 0; i < o.length; i++) o[i] = Math.min(255, d[i * 4] * 1.7);
+    TEX.push({ w: w * k, h: h * k, d: o, span: w / 128 }); return TEX.length - 1;
+  }
+  function masonry(g, w, h) {            // courses in 6 : 8 : 9 : 12
+    let y = 0, n = 0; g.globalAlpha = .55;
+    for (const k of [12, 9, 8, 6, 12, 9, 8, 6]) { const ch = k * h / 70; g.strokeRect(-2, y, w + 4, ch); for (let x = (n % 2) * 21; x < w; x += 42) { g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + ch); g.stroke(); } y += ch; n++; }
+    g.globalAlpha = 1;
+  }
+  const EMBLEM = [
+    (g) => { g.strokeRect(46, 52, 6, 40); g.strokeRect(76, 52, 6, 40); g.beginPath(); g.arc(64, 52, 18, Math.PI, 0); g.stroke(); },
+    (g) => { for (let i = 0; i < 3; i++) { g.beginPath(); g.arc(64, 62, 8 + i * 8, i * 2.1, i * 2.1 + 4); g.stroke(); } },
+    (g) => { for (let i = 0; i < 9; i++) { g.beginPath(); g.moveTo(40 + i * 6, 40 + (i % 3) * 5); g.lineTo(37 + i * 6, 58 + (i % 3) * 5); g.stroke(); } for (let i = 0; i < 3; i++) { g.beginPath(); g.arc(50 + i * 14, 78, 5, 0, 7); g.stroke(); } },
+    (g) => { g.beginPath(); g.arc(46, 62, 18, -1.57, 1.57); g.stroke(); g.beginPath(); g.arc(82, 62, 18, 1.57, 4.71); g.stroke(); g.beginPath(); g.arc(64, 62, 5, 0, 7); g.fill(); },
+    (g) => { for (let j = 0; j < 4; j++) { g.beginPath(); for (let x = 36; x <= 92; x += 2) g.lineTo(x, 48 + j * 9 + 3 * Math.sin(x / 5 + j)); g.stroke(); } },
+    (g) => { g.strokeRect(42, 62, 44, 22); g.beginPath(); g.moveTo(40, 60); g.lineTo(84, 48); g.stroke(); for (let i = 0; i < 4; i++) { g.beginPath(); g.moveTo(50 + i * 9, 60); g.quadraticCurveTo(46 + i * 9, 50, 52 + i * 9, 42); g.stroke(); } },
+    (g) => { for (const r of [8, 17, 26]) { g.beginPath(); g.arc(64, 62, r, 0, 7); g.stroke(); } },
+    (g) => { for (let r = 0; r < 4; r++) for (let i = 0; i <= r; i++) { g.beginPath(); g.arc(64 + (i - r / 2) * 14, 40 + r * 13, 3.2, 0, 7); g.fill(); } },
+    (g) => { g.beginPath(); g.moveTo(34, 50); for (const [x, y] of [[48, 66], [56, 52], [70, 74], [80, 56], [94, 70]]) g.lineTo(x, y); g.stroke(); g.beginPath(); g.moveTo(56, 52); g.lineTo(52, 36); g.moveTo(70, 74); g.lineTo(76, 90); g.stroke(); }];
+  const WALL = CIRCLES.map((_, L) => tex(128, 128, (g, w, h) => { masonry(g, w, h); g.fillStyle = "#000"; g.beginPath(); g.arc(64, 62, 34, 0, 7); g.fill(); g.stroke(); g.fillStyle = "#fff"; EMBLEM[L](g); }));
+  const PAR = tex(128, 128, (g, w) => { g.fillRect(0, 0, w, 10); g.globalAlpha = .5; for (let x = 0; x < w; x += 16) g.strokeRect(x, 14, 16, 120); });
+  const plate = (name, sub, crown) => tex(128, 128, (g, w, h) => {
+    masonry(g, w, h); g.fillStyle = "#000"; g.fillRect(6, 36, 116, 60); g.strokeRect(6, 36, 116, 60); g.strokeRect(10, 40, 108, 52); g.fillStyle = "#fff";
+    if (crown) { g.beginPath(); g.moveTo(50, 60); g.lineTo(50, 48); g.lineTo(57, 55); g.lineTo(64, 45); g.lineTo(71, 55); g.lineTo(78, 48); g.lineTo(78, 60); g.closePath(); g.stroke(); }
+    g.font = "bold " + (name.length > 10 ? 12 : 16) + "px Palatino, 'Book Antiqua', Georgia, serif"; g.fillText(name, 64, crown ? 78 : 70);
+    if (sub) { g.font = "bold 9px Palatino, Georgia, serif"; g.fillText(sub, 64, 89); }
+  });
+  const KING = [plate("ORIENS", "EAST", 1), plate("AMAYMON", "SOUTH", 1), plate("PAIMON", "WEST", 1), plate("EGIN", "NORTH", 1)];
+  const SENATOR = ["ORMELL", "TEYGRA", "DANALL", "SALERICA", "ASMOE", "PASCARI", "BOELL"].map((n) => plate(n, "SENATOR"));
+  const DEVIL = ["LUCIPHER", "BELLZEBUB", "SATAN"].map((n) => plate(n, ""));
+  const EMPEROR = plate("TANTAVALERION", "EMPEROR");
+  const GATETEX = tex(256, 128, (g, w, h) => {
+    masonry(g, w, h); g.fillStyle = "#000"; g.beginPath(); g.moveTo(24, 128); g.lineTo(24, 60); g.arc(128, 60, 104, Math.PI, 0); g.lineTo(232, 128); g.fill(); g.stroke();
+    g.beginPath(); g.moveTo(34, 128); g.lineTo(34, 62); g.arc(128, 62, 94, Math.PI, 0); g.lineTo(222, 128); g.stroke(); g.fillStyle = "#fff";
+    g.beginPath(); g.moveTo(128, 0); g.lineTo(128, 128); g.globalAlpha = .5; g.stroke(); g.globalAlpha = 1;
+    g.fillStyle = "#000"; g.fillRect(48, 22, 160, 78); g.fillStyle = "#fff";
+    g.font = "bold 12px Palatino, 'Book Antiqua', Georgia, serif"; g.fillText("LASCIATE OGNE SPERANZA", 128, 40); g.fillText("VOI CH'INTRATE", 128, 57);
+    g.font = "bold 8.5px Palatino, Georgia, serif"; g.fillText("BELIALL · MALEUS · MALCRANUS", 128, 82); g.fillText("KEEPERS OF THE GATE", 128, 94);
+  });
+  const STARS = tex(256, 128, (g) => { for (let i = 0; i < 70; i++) { g.globalAlpha = .4 + .6 * Math.random(); g.fillRect(Math.random() * 256, Math.random() * 96, 1.6, 1.6); } g.globalAlpha = 1; g.font = "bold 9px Palatino, Georgia, serif"; g.fillText("E QUINDI USCIMMO A RIVEDER LE STELLE", 128, 116); });
+
+  /* ---- the shapes of the condemned: four frames each, black bodies in white line ---- */
+  const SHAPE = {
+    stele: (g) => { g.beginPath(); g.moveTo(16, 63); g.lineTo(16, 20); g.arc(32, 20, 16, Math.PI, 0); g.lineTo(48, 63); g.closePath(); g.fill(); g.stroke(); g.lineWidth = 1; for (let y = 24; y < 58; y += 6) { g.beginPath(); g.moveTo(22, y); g.lineTo(42 - (y % 12 ? 0 : 7), y); g.stroke(); } g.beginPath(); g.arc(32, 13, 3, 0, 7); g.stroke(); },
+    shade: (g, f) => { const s = [0, 2, 0, -2][f]; g.beginPath(); g.moveTo(32 + s, 3); g.quadraticCurveTo(54, 30, 50, 63); g.lineTo(14, 63); g.quadraticCurveTo(10, 30, 32 + s, 3); g.fill(); g.stroke(); g.beginPath(); g.ellipse(32 + s / 2, 20, 6, 8, 0, 0, 7); g.stroke(); g.beginPath(); g.ellipse(32, 42, 19, 5, 0, 0, 7); g.stroke(); g.beginPath(); g.ellipse(32, 50, 19, 5, 0, 0, 7); g.stroke(); },
+    weight: (g, f) => { g.beginPath(); g.arc(40, 40, 21, 0, 7); g.fill(); g.stroke(); const a = f * .8; g.beginPath(); g.moveTo(40 - 21 * Math.cos(a), 40 - 21 * Math.sin(a)); g.lineTo(40 + 21 * Math.cos(a), 40 + 21 * Math.sin(a)); g.moveTo(40 + 21 * Math.sin(a), 40 - 21 * Math.cos(a)); g.lineTo(40 - 21 * Math.sin(a), 40 + 21 * Math.cos(a)); g.stroke(); g.beginPath(); g.moveTo(4, 63); g.lineTo(14, 30 + (f % 2)); g.lineTo(22, 40); g.lineTo(16, 63); g.closePath(); g.fill(); g.stroke(); g.beginPath(); g.arc(13, 24 + (f % 2), 4, 0, 7); g.fill(); g.stroke(); },
+    flame: (g, f) => { const k = [0, 4, -3, 2][f]; g.beginPath(); g.moveTo(32, 62); g.bezierCurveTo(8, 50, 20 + k, 30, 24 - k, 4); g.bezierCurveTo(30, 18, 30, 24, 33, 28); g.bezierCurveTo(36, 22, 38 + k, 14, 42 + k, 8); g.bezierCurveTo(46, 30, 56 - k, 50, 32, 62); g.fill(); g.stroke(); g.beginPath(); g.moveTo(32, 56); g.bezierCurveTo(22, 48, 28 + k, 40, 31, 34); g.bezierCurveTo(36, 42, 42, 48, 32, 56); g.stroke(); },
+    serpent: (g, f) => { const path = () => { g.beginPath(); for (let y = 62; y >= 12; y -= 2) g.lineTo(32 + (6 + (62 - y) * .22) * Math.sin(y / 7 + f * 1.57), y); }; g.lineWidth = 9; g.strokeStyle = "#fff"; path(); g.stroke(); g.lineWidth = 5.5; g.strokeStyle = "#000"; path(); g.stroke(); g.strokeStyle = "#fff"; g.lineWidth = 1.5; const hx = 32 + 17 * Math.sin(12 / 7 + f * 1.57); g.beginPath(); g.moveTo(hx - 8, 12); g.lineTo(hx, 1); g.lineTo(hx + 8, 12); g.closePath(); g.fill(); g.stroke(); g.beginPath(); g.moveTo(hx, 1); g.lineTo(hx - 3, -4); g.moveTo(hx, 1); g.lineTo(hx + 3, -4); g.stroke(); },
+    ice: (g, f) => { g.beginPath(); g.arc(32, 40, 13, Math.PI, 0); g.fill(); g.stroke(); g.beginPath(); g.moveTo(21, 33); g.lineTo(13, 14); g.lineTo(27, 29); g.closePath(); g.fill(); g.stroke(); g.beginPath(); g.moveTo(43, 33); g.lineTo(51, 14); g.lineTo(37, 29); g.closePath(); g.fill(); g.stroke(); g.beginPath(); g.moveTo(0, 42); for (const [x, y] of [[9, 38], [17, 44], [26, 40], [38, 43], [47, 38], [56, 44], [64, 40], [64, 64], [0, 64]]) g.lineTo(x, y); g.closePath(); g.fill(); g.stroke(); g.lineWidth = 1; g.beginPath(); g.moveTo(17, 44); g.lineTo(22, 58); g.moveTo(38, 43); g.lineTo(34, 60); g.moveTo(47, 38); g.lineTo(52, 56); g.stroke(); g.fillRect(8 + f * 14, 50, 2, 2); }
+  };
+  const SIZE = { stele: [1.25, 0], shade: [1.3, 0], weight: [1.05, 0], flame: [1.15, .12], serpent: [1.25, 0], ice: [.85, 0] };
+  const FRAMES = {};
+  for (const k in SHAPE) FRAMES[k] = [0, 1, 2, 3].map((f) => {
+    const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d");
+    g.fillStyle = "#000"; g.strokeStyle = "#fff"; g.lineWidth = 1.8; g.lineJoin = "round"; SHAPE[k](g, f);
+    const d = g.getImageData(0, 0, 64, 64).data, o = new Uint8Array(4096);
+    for (let i = 0; i < 4096; i++) o[i] = d[i * 4 + 3] < 90 ? 0 : Math.max(1, d[i * 4]);   // 0 is nothing; 1 is the black body
+    return o;
+  });
+
+  /* ---- the ground plan ---- */
+  const spots = [], sprites = [];
+  for (let L = 0; L < 9; L++) {
+    const ox = L * S;
+    for (let ly = 0; ly < S; ly++) for (let lx = 0; lx < S; lx++) {
+      const r = Math.max(Math.abs(lx - C), Math.abs(ly - C)), c = at(ox + lx, ly);
+      T[c] = WALL[L];
+      if (r <= 4) M[c] = 3; else if (r === 5) { M[c] = 2; T[c] = PAR; } else if (r <= 7) M[c] = 0;
+    }
+    T[at(ox + C + 8, C)] = KING[0]; T[at(ox + C, C + 8)] = KING[1]; T[at(ox + C - 8, C)] = KING[2]; T[at(ox + C, C - 8)] = KING[3];
+    if (L === 5) [9, 10, 11, 12, 14, 15, 16].forEach((lx, i) => T[at(ox + lx, C + 8)] = SENATOR[i]);
+    const re = pick([9, 10, 11, 16, 17]), rw = pick([9, 10, 11, 15, 16, 17]), cn = pick([C - 4, C + 4]), cs = pick([C - 5, C + 5]);
+    const le = 2 + Math.floor(rnd() * 3), lw = 2 + Math.floor(rnd() * 3), ln = 2 + Math.floor(rnd() * 3), ls = 2 + Math.floor(rnd() * 3);
+    for (let i = 0; i <= le; i++) M[at(ox + 21 + i, re)] = 0;
+    for (let i = 0; i <= lw; i++) M[at(ox + 5 - i, rw)] = 0;
+    for (let i = 0; i <= ln; i++) M[at(ox + cn, 5 - i)] = 0;
+    for (let i = 0; i <= ls; i++) M[at(ox + cs, 21 + i)] = 0;
+    spots[L] = { east: [ox + 21 + le, re], west: [ox + 5 - lw, rw],
+      rest: [[ox + cn, 5 - ln], [ox + cs, 21 + ls], [ox + C - 7, C - 3], [ox + C + 3, C - 7], [ox + C - 3, C + 7], [ox + C + 7, C + 4], [ox + C - 7, C + 3], [ox + C - 3, C - 7]] };
+    if (L % 2) { const fx = ox + pick([C + 1, C + 2]); M[at(fx, C + 6)] = M[at(fx, C + 7)] = 4; }   // a fissure to leap
+    for (const lx of [C + 6, C + 7]) {       // the seam: one full turn sunwise is one circle down
+      link(ox + lx, C, 1, (L < 8 ? ox + S : EXIT * S) + lx, C + 1);
+      link(ox + lx, C + 1, 3, (L > 0 ? ox - S : GATE * S) + lx, C);
+    }
+  }
+  const fold = 2 + Math.floor(rnd() * 3);    // side passages open into another circle
+  for (let L = 0; L < 9; L++) { const a = spots[L].east, b = spots[(L + fold) % 9].west; link(a[0], a[1], 0, b[0], b[1]); link(b[0], b[1], 2, a[0], a[1]); }
+  { // the Gate, shut behind you
+    const ox = GATE * S;
+    for (let ly = 8; ly <= C; ly++) for (let lx = 17; lx <= 22; lx++) M[at(ox + lx, ly)] = 0;
+    for (let i = 0; i < MW * MH; i++) if (i % MW >= ox && i % MW < ox + S) T[i] = WALL[0];
+    T[at(ox + 19, 7)] = T[at(ox + 20, 7)] = GATETEX; TS[at(ox + 20, 7)] = 1;
+    for (const lx of [C + 6, C + 7]) link(ox + lx, C, 1, lx, C + 1);
+    spots[-1] = { rest: [[ox + 17, 9], [ox + 22, 9], [ox + 17, 11], [ox + 22, 11], [ox + 17, 13], [ox + 22, 13]] };
+  }
+  { // the way out, past the centre
+    const ox = EXIT * S;
+    for (let i = 0; i < MW * MH; i++) if (i % MW >= ox) T[i] = WALL[8];
+    for (let ly = C + 1; ly <= 19; ly++) M[at(ox + 19, ly)] = M[at(ox + 20, ly)] = 0;
+    T[at(ox + 19, 20)] = T[at(ox + 20, 20)] = STARS; TS[at(ox + 19, 20)] = 1;
+    DEVIL.forEach((t, i) => T[at(ox + 18, 15 + i)] = t); T[at(ox + 21, 16)] = EMPEROR;
+    for (const lx of [C + 6, C + 7]) link(ox + lx, C + 1, 3, 8 * S + lx, C);
+  }
+  for (const st of ["vas", "index"]) REGISTRUM[st].records.forEach((r, n) => {
+    const fm = FORM[r.kind] || ["shade", 0], list = spots[fm[1]].rest, p = list.shift();
+    if (!p) return;
+    const c = at(p[0], p[1]); M[c] = 5; SP[c] = sprites.length;
+    sprites.push({ x: p[0] + .5, y: p[1] + .5, form: fm[0], store: st, r, n, seen: false });
+  });
+
+  /* ---- the eye ---- */
+  const cv = $("hell"), g = cv.getContext("2d");
+  let W = 480, H = 270, img, buf;
+  const P = { x: GATE * S + 20, y: 11.5, a: -Math.PI / 2, z: .55, vz: 0 };
+  const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5], WH = 1.7, PL = .72, EYE = .55;
+  let target = null, reading = false, on = false, last = 0;
+  const keys = new Set();
+  function size() { H = 400; W = Math.max(480, Math.min(900, Math.round(H * innerWidth / innerHeight / 2) * 2)); cv.width = W; cv.height = H; img = g.createImageData(W, H); buf = new Float32Array(W * H); for (let i = 3; i < img.data.length; i += 4) img.data[i] = 255; }
+  const pass = (x, y) => { if (x < 0 || y < 0 || x >= MW || y >= MH) return false; const m = M[at(x, y)]; return m === 0 || (m === 4 && P.z > EYE + .12); };
+  function move(dx, dy) {
+    for (const [ax, d] of [[0, dx], [1, dy]]) {
+      if (!d) continue;
+      const cx = Math.floor(P.x), cy = Math.floor(P.y), dir = ax ? (d > 0 ? 1 : 3) : (d > 0 ? 0 : 2);
+      const probe = (ax ? P.y : P.x) + d + Math.sign(d) * .24, pc = Math.floor(probe), here = ax ? cy : cx;
+      const pd = pc !== here ? portal.get(at(cx, cy) * 4 + dir) : null;
+      if (pc !== here && !pass(cx + DX[dir] + (pd ? pd[0] : 0), cy + DY[dir] + (pd ? pd[1] : 0))) continue;
+      if (ax) P.y += d; else P.x += d;
+      if (Math.floor(ax ? P.y : P.x) !== here) { const q = portal.get(at(cx, cy) * 4 + dir); if (q) { P.x += q[0]; P.y += q[1]; } }
+    }
+  }
+  function where() { const b = Math.floor(P.x / S); return b === GATE ? -1 : b === EXIT ? 9 : b; }
+  function hud() {
+    const b = where();
+    $("locus").textContent = b < 0 ? "THE GATE" : b > 8 ? "THE WAY OUT" : "CIRCLE " + CIRCLES[b][0] + " · " + CIRCLES[b][1].toUpperCase();
+    $("sensus").textContent = b < 0 ? "It has shut behind you. The history of the Vessel stands here. Turn, and go down by the right hand." : b > 8 ? "Past the centre, to see the stars again." : CIRCLES[b][2];
+    $("found").textContent = sprites.filter((s) => s.seen).length + " of " + sprites.length + " records read · facing " + "ESWN"[(Math.round(P.a / (Math.PI / 2)) % 4 + 4) % 4];
+    $("prompt").textContent = target && !reading ? "E · read: " + explain(target.store, target.r).kind : "";
+  }
+  function read() {
+    if (reading) { reading = false; $("lectio").hidden = true; return; }
+    if (!target) return;
+    reading = true; target.seen = true; store = target.store;
+    const box = $("lectio"); box.hidden = false; detail(target.r, target.n, box);
+    box.prepend(el("p", "gist", explain(target.store, target.r).gist));
+    box.append(el("p", "close", "E or Esc · close"));
+    if (document.pointerLockElement) document.exitPointerLock();
+  }
+  function frame(t) {
+    requestAnimationFrame(frame);
+    if (!on) return;
+    const dt = Math.min(.05, (t - last) / 1000 || 0); last = t;
+    if (!reading && depth === 1) {
+      const turn = (keys.has("ArrowLeft") ? -1 : 0) + (keys.has("ArrowRight") ? 1 : 0); P.a += turn * 2.2 * dt;
+      const f = (keys.has("KeyW") || keys.has("ArrowUp") ? 1 : 0) - (keys.has("KeyS") || keys.has("ArrowDown") ? 1 : 0), s = (keys.has("KeyD") ? 1 : 0) - (keys.has("KeyA") ? 1 : 0);
+      const v = 3.1 * dt, ca = Math.cos(P.a), sa = Math.sin(P.a);
+      move((ca * f - sa * s) * v, (sa * f + ca * s) * v);
+      if (keys.has("Space") && P.z <= EYE) P.vz = 2.5;
+      P.z += P.vz * dt; P.vz -= 7 * dt; if (P.z <= EYE) { P.z = EYE; P.vz = 0; }
+      if (where() === 9 && P.y > 18.4) { leave(); return; }
+    }
+    draw(t); hud();
+  }
+  function draw(t) {
+    const hor = H >> 1, K = H * .95, dx = Math.cos(P.a), dy = Math.sin(P.a), px = -dy * PL, py = dx * PL, fr = Math.floor(t / 170);
+    buf.fill(0);
+    for (let y = hor + 1; y < H; y++) {            // the floor
+      const d = P.z * K / (y - hor), fall = Math.min(1, 2 / (1 + .25 * d * d)) * 255;
+      let fx = P.x + d * (dx - px), fy = P.y + d * (dy - py); const sx = d * 2 * px / W, sy = d * 2 * py / W;
+      for (let x = 0, o = y * W; x < W; x++, fx += sx, fy += sy) {
+        const cx = Math.floor(fx), cy = Math.floor(fy), m = cx >= 0 && cy >= 0 && cx < MW && cy < MH ? M[cy * MW + cx] : 1;
+        if (m === 3 || m === 4) continue;
+        const u = fx - cx, w = fy - cy;
+        buf[o + x] = (u < .05 || w < .05 ? .62 : Math.abs(u - .5) + Math.abs(w - .5) < .07 ? .5 : .1) * fall;
+      }
+    }
+    target = null;
+    for (let x = 0; x < W; x++) {                  // the walls and what stands before them
+      const cam = 2 * x / W - 1, rx = dx + px * cam, ry = dy + py * cam, ddx = Math.abs(1 / rx), ddy = Math.abs(1 / ry);
+      let mx = Math.floor(P.x), my = Math.floor(P.y), ox = 0, oy = 0;
+      let sdx = rx < 0 ? (P.x - mx) * ddx : (mx + 1 - P.x) * ddx, sdy = ry < 0 ? (P.y - my) * ddy : (my + 1 - P.y) * ddy;
+      const lay = [];
+      for (let i = 0; i < 70; i++) {
+        let side, d;
+        if (sdx < sdy) { sdx += ddx; side = 0; d = rx > 0 ? 0 : 2; } else { sdy += ddy; side = 1; d = ry > 0 ? 1 : 3; }
+        const pd = portal.get((my * MW + mx) * 4 + d);
+        mx += DX[d]; my += DY[d]; if (pd) { mx += pd[0]; my += pd[1]; ox += pd[0]; oy += pd[1]; }
+        if (mx < 0 || my < 0 || mx >= MW || my >= MH) break;
+        const c = my * MW + mx, m = M[c];
+        if (m === 1 || m === 2) {
+          const perp = side ? sdy - ddy : sdx - ddx;
+          let u = side ? P.x + ox + perp * rx : P.y + oy + perp * ry; u -= Math.floor(u);
+          if ((!side && rx < 0) || (side && ry > 0)) u = 1 - u;
+          lay.push({ k: m, d: perp, u, c, side });
+          if (m === 1) break;
+        } else if (SP[c] >= 0) {
+          const s = sprites[SP[c]], qx = s.x - P.x - ox, qy = s.y - P.y - oy, dep = qx * dx + qy * dy;
+          if (dep > .15) { const u = (dep * cam * PL - (qx * px + qy * py) / PL) / .8 + .5; if (u >= 0 && u < 1) { lay.push({ k: 9, d: dep, u, s }); if (x === W >> 1 && dep < 2.6 && !target) target = s; } }
+        }
+      }
+      lay.sort((a, b) => b.d - a.d);
+      for (const L of lay) {
+        const d = Math.max(.05, L.d);
+        if (L.k === 9) {
+          const sz = SIZE[L.s.form], top = hor - (sz[1] + sz[0] - P.z) * K / d, bot = hor - (sz[1] - P.z) * K / d, tx = Math.floor(L.u * 64), F = FRAMES[L.s.form][(fr + L.s.n) % 4];
+          const fall = Math.min(1, 2.6 / (1 + .16 * d * d)) * 255;
+          for (let y = Math.max(0, Math.ceil(top)); y <= Math.min(H - 1, bot); y++) { const p = F[Math.min(63, Math.floor((y - top) / (bot - top) * 64)) * 64 + tx]; if (p) buf[y * W + x] = p === 1 ? 0 : p / 255 * fall; }
+          continue;
+        }
+        const wh = L.k === 2 ? .34 : WH, top = hor - (wh - P.z) * K / d, bot = hor + P.z * K / d, tx = TEX[T[L.c]];
+        const fall = Math.min(1, 2.6 / (1 + .2 * d * d)) * (L.side ? .78 : 1) * 255, tu = Math.min(tx.w - 1, Math.floor((TS[L.c] + L.u) / tx.span * tx.w));
+        for (let y = Math.max(0, Math.ceil(top)); y <= Math.min(H - 1, bot); y++) buf[y * W + x] = (.13 + .87 * tx.d[Math.min(tx.h - 1, Math.floor((y - top) / (bot - top) * tx.h)) * tx.w + tu] / 255) * fall;
+      }
+    }
+    const o = img.data;                            // black or white, nothing between
+    for (let y = 0, i = 0; y < H; y++) for (let x = 0; x < W; x++, i++) o[i * 4] = o[i * 4 + 1] = o[i * 4 + 2] = buf[i] > BAYER[(y & 3) * 4 + (x & 3)] * 15 + 9 ? 242 : 0;
+    g.putImageData(img, 0, 0);
+  }
+  function enter() { on = true; size(); P.x = GATE * S + 20; P.y = 11.5; P.a = -Math.PI / 2; P.z = EYE; reading = false; $("lectio").hidden = true; last = performance.now(); }
+  function leave() { on = depth > 0; if (document.pointerLockElement) document.exitPointerLock(); reading = false; $("lectio").hidden = true; travel(0, () => { on = false; $("glass").focus(); }); }
+  addEventListener("keydown", (e) => {
+    if (!on || scene !== "hell") return;
+    if (e.code === "KeyE" || (e.code === "Escape" && reading)) { read(); e.stopImmediatePropagation(); e.preventDefault(); return; }
+    keys.add(e.code); if (e.code === "Space" || e.code.startsWith("Arrow")) e.preventDefault();
+  }, true);
+  addEventListener("keyup", (e) => keys.delete(e.code));
+  addEventListener("blur", () => keys.clear());
+  cv.addEventListener("click", () => { if (reading) return; if (target) read(); else if (cv.requestPointerLock) { try { const p = cv.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) {} } });
+  let drag = false;
+  cv.addEventListener("pointerdown", () => drag = true); addEventListener("pointerup", () => drag = false);
+  addEventListener("pointermove", (e) => { if (on && !reading && (document.pointerLockElement === cv || drag)) P.a += e.movementX * .0032; });
+  addEventListener("resize", () => { if (on) size(); });
+  requestAnimationFrame(frame);
+  return { enter, leave, P, sprites, S, get on() { return on; } };
+})();
+
+$("state").innerHTML = REGISTRUM.sample
+  ? "<b>Design sample.</b> In the program the mirror opens only with the wand present and no rite running, and records each gaze."
+  : "The wand is present. No rite is running. This gaze is recorded.";
+$("sample").textContent = REGISTRUM.sample ? "sample records" : REGISTRUM.house;
+show("vas");
+</script>
+</body>
+</html>
